@@ -42,41 +42,48 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libruby-dev ruby-dev pkg-config radare2 gcc
+          sudo apt-get install -y ruby-dev pkg-config radare2 gcc
 
       - name: Install macOS Dependencies
         if: runner.os == 'macOS'
         run: |
           brew install radare2 pkg-config
 
-      - name: Setup Windows Import Library
+      - name: Setup Windows Dependencies
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
-          # Ensure radare2 and llvm tools are available if regeneration is needed
-          if [ ! -f "ext/ruby_clean.lib" ]; then
-            shards install
-            crystal run src/rubellite/tooling/import_lib_generator.cr
-          fi
+          choco install radare2 -y --no-progress
+          $rubyDll = ruby -e "require 'rbconfig'; puts [File.join(RbConfig::CONFIG['bindir'], RbConfig::CONFIG['LIBRUBY_SO'] || ''), File.join(RbConfig::CONFIG['libdir'], RbConfig::CONFIG['LIBRUBY_SO'] || '')].find { |f| File.file?(f) }"
+          Write-Host "Discovered Ruby DLL: $rubyDll"
+          $rubyBin = Split-Path -Parent $rubyDll
+          Add-Content $env:GITHUB_PATH "$rubyBin"
+          Add-Content $env:GITHUB_PATH "C:\Program Files\LLVM\bin"
+          Add-Content $env:GITHUB_PATH "C:\tools\radare2"
+          New-Item -ItemType Directory -Force -Path bin
+          Copy-Item $rubyDll -Destination .
+          Copy-Item $rubyDll -Destination bin
 
       - name: Install Shards
         run: shards install
+
+      - name: Setup Windows Import Library
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          crystal run src/rubellite/tooling/import_lib_generator.cr
 
       - name: Build Rubellite CLI
         run: shards build rubellite
 
       - name: Run CLI Doctor
         run: ./bin/rubellite doctor
-        shell: bash
 
       - name: Run Test Suite
-        run: |
-          crystal spec --verbose spec/all_spec.cr
-        shell: bash
+        run: crystal spec --verbose spec/all_spec.cr
 
       - name: Run Benchmarks
         run: ./bin/rubellite bench
-        shell: bash
 
       - name: Run Examples
         run: |
@@ -87,4 +94,3 @@ jobs:
           crystal run examples/05_channel_and_fiber_concurrency.cr
           crystal run examples/06_spinel_aot_fastpath.cr
           crystal run examples/07_r2_binary_forensics.cr
-        shell: bash

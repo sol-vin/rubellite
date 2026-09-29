@@ -2946,6 +2946,9 @@ EXPORTS
     ruby_stack_check
     ruby_stack_length
     ruby_stack_overflowed_p
+    ruby_static_id_cause
+    ruby_static_id_signo
+    ruby_static_id_status
     ruby_stop
     ruby_strdup
     ruby_strtod

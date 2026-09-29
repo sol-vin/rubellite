@@ -7,8 +7,10 @@ describe Rubellite::Diagnostics::R2 do
     report.ruby_dll_path.should_not eq("NOT FOUND")
     report.total_symbols_found.should be > 1000
     report.abi_compatible?.should be_true
-    report.clean_lib_exists.should be_true
-    report.clean_symbols_count.should be > 2000
+    {% if flag?(:windows) %}
+      report.clean_lib_exists.should be_true
+      report.clean_symbols_count.should be > 2000
+    {% end %}
   end
 
   it "disassembles Ruby exported functions" do

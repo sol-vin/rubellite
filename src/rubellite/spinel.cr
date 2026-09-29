@@ -133,28 +133,55 @@ module Rubellite
       raise "Failed to compile Spinel native module: #{compile_cmd}" unless success
 
       # Load dynamic library
-      handle = LibDynLink.load_library(lib_path)
+      handle = DynLink.open(lib_path)
       raise "Failed to load compiled Spinel library #{lib_path}" if handle.null?
 
-      fn_ptr = LibDynLink.get_proc_address(handle, name)
+      fn_ptr = DynLink.sym(handle, name)
       raise "Failed to resolve exported Spinel symbol #{name}" if fn_ptr.null?
 
       NativeFunction.new(name, handle, fn_ptr)
     end
   end
 
-  # Minimal dynamic link library wrapper
-  {% if flag?(:windows) %}
-    lib LibDynLink
-      fun load_library = LoadLibraryA(name : UInt8*) : Void*
-      fun get_proc_address = GetProcAddress(handle : Void*, name : UInt8*) : Void*
-      fun free_library = FreeLibrary(handle : Void*) : Int32
-    end
-  {% else %}
-    lib LibDynLink
-      fun load_library = dlopen(name : UInt8*, flags : Int32) : Void*
-      fun get_proc_address = dlsym(handle : Void*, name : UInt8*) : Void*
-      fun free_library = dlclose(handle : Void*) : Int32
-    end
-  {% end %}
+  # Dynamic library loader wrapper
+  module DynLink
+    {% if flag?(:windows) %}
+      lib LibWin32
+        fun load_library = LoadLibraryA(name : UInt8*) : Void*
+        fun get_proc_address = GetProcAddress(handle : Void*, name : UInt8*) : Void*
+        fun free_library = FreeLibrary(handle : Void*) : Int32
+      end
+
+      def self.open(path : String) : Void*
+        LibWin32.load_library(path)
+      end
+
+      def self.sym(handle : Void*, name : String) : Void*
+        LibWin32.get_proc_address(handle, name)
+      end
+
+      def self.close(handle : Void*) : Int32
+        LibWin32.free_library(handle)
+      end
+    {% else %}
+      lib LibDl
+        fun dlopen(name : UInt8*, flags : Int32) : Void*
+        fun dlsym(handle : Void*, name : UInt8*) : Void*
+        fun dlclose(handle : Void*) : Int32
+        RTLD_NOW = 2
+      end
+
+      def self.open(path : String) : Void*
+        LibDl.dlopen(path, LibDl::RTLD_NOW)
+      end
+
+      def self.sym(handle : Void*, name : String) : Void*
+        LibDl.dlsym(handle, name)
+      end
+
+      def self.close(handle : Void*) : Int32
+        LibDl.dlclose(handle)
+      end
+    {% end %}
+  end
 end

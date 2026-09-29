@@ -1,9 +1,7 @@
 {% if flag?(:windows) %}
   @[Link(ldflags: "\"#{__DIR__}/../../ext/ruby_clean.lib\"")]
-{% elsif flag?(:darwin) %}
-  @[Link(ldflags: "`pkg-config --libs ruby-3.4 2>/dev/null || pkg-config --libs ruby-3.3 2>/dev/null || pkg-config --libs ruby-3.2 2>/dev/null || pkg-config --libs ruby 2>/dev/null || echo -lruby`")]
 {% else %}
-  @[Link(ldflags: "`pkg-config --libs ruby-3.4 2>/dev/null || pkg-config --libs ruby-3.3 2>/dev/null || pkg-config --libs ruby-3.2 2>/dev/null || pkg-config --libs ruby 2>/dev/null || echo -lruby`")]
+  @[Link(ldflags: "`ruby -e 'require %{rbconfig}; puts %{-L\#{RbConfig::CONFIG[%{libdir}]} -l\#{RbConfig::CONFIG[%{RUBY_SO_NAME}]}}' 2>/dev/null || pkg-config --libs ruby-3.4 2>/dev/null || pkg-config --libs ruby-3.3 2>/dev/null || pkg-config --libs ruby-3.2 2>/dev/null || echo -lruby`")]
 {% end %}
 lib LibRuby
   alias Value = UInt64

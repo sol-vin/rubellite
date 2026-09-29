@@ -20,16 +20,22 @@ module Rubellite
           return env_path if File.exists?(env_path)
         end
 
-        # Query Ruby config
-        output = `ruby -e "require 'rbconfig'; puts File.join(RbConfig::CONFIG['bindir'], RbConfig::CONFIG['LIBRUBY_SO'])"`.strip
+        # Query Ruby config across all OSes (Windows bindir, Linux/macOS libdir)
+        output = `ruby -e "require 'rbconfig'; puts [File.join(RbConfig::CONFIG['bindir'], RbConfig::CONFIG['LIBRUBY_SO'] || ''), File.join(RbConfig::CONFIG['libdir'], RbConfig::CONFIG['LIBRUBY_SO'] || ''), File.join(RbConfig::CONFIG['libdir'], 'libruby.so'), File.join(RbConfig::CONFIG['libdir'], 'libruby.dylib')].find { |f| File.file?(f) }"`.strip
         if File.exists?(output)
           return output
         end
 
         # Fallback search in standard paths
-        candidates = Dir.glob(["C:/Ruby*/bin/*ruby*.dll", "C:/Users/*/scoop/apps/ruby/current/bin/*ruby*.dll"])
+        candidates = Dir.glob([
+          "C:/Ruby*/bin/*ruby*.dll",
+          "C:/Users/*/scoop/apps/ruby/current/bin/*ruby*.dll",
+          "/usr/lib/*/*ruby*.so*",
+          "/usr/lib/*ruby*.so*",
+          "/usr/local/lib/*ruby*.dylib*"
+        ])
         if candidates.empty?
-          raise "Unable to locate Ruby DLL. Please set RUBY_DLL environment variable."
+          raise "Unable to locate Ruby shared library. Please set RUBY_DLL environment variable."
         end
         candidates.first
       end
@@ -42,24 +48,62 @@ module Rubellite
         puts "[Rubellite] Inspecting Ruby DLL: #{dll_path}"
         dll_name = File.basename(dll_path)
 
-        # Use r2 to extract exported symbols
-        raw_exports = `r2 -q -c "iE" "#{dll_path}"`
+        # Extract exported symbols using r2, llvm-readobj, or dumpbin
         symbols = Set(String).new
 
-        raw_exports.each_line do |line|
-          line = line.strip
-          next if line.empty? || line.starts_with?("WARN") || line.starts_with?("ERROR")
-          parts = line.split
-          next if parts.size < 6
-          sym = parts.last
-          # Only include rb_* and ruby_* symbols, or legitimate Ruby exports
-          if (sym.starts_with?("rb_") || sym.starts_with?("ruby_") || sym.starts_with?("Init_")) && !DANGEROUS_EXPORTS.includes?(sym)
-            symbols << sym
+        if Process.find_executable("r2")
+          begin
+            raw_exports = `r2 -q -c "iE" "#{dll_path}"`
+            raw_exports.each_line do |line|
+              line = line.strip
+              next if line.empty? || line.starts_with?("WARN") || line.starts_with?("ERROR")
+              parts = line.split
+              next if parts.size < 6
+              sym = parts.last
+              if (sym.starts_with?("rb_") || sym.starts_with?("ruby_") || sym.starts_with?("Init_")) && !DANGEROUS_EXPORTS.includes?(sym)
+                symbols << sym
+              end
+            end
+          rescue
+            # Fall through to llvm-readobj
           end
         end
 
         if symbols.empty?
-          raise "No valid Ruby exported symbols found via r2 in #{dll_path}"
+          readobj = Process.find_executable("llvm-readobj") ||
+                    (File.exists?("C:/Program Files/LLVM/bin/llvm-readobj.exe") ? "C:/Program Files/LLVM/bin/llvm-readobj.exe" : nil)
+          if readobj
+            raw_exports = `\"#{readobj}\" --coff-exports \"#{dll_path}\"`
+            raw_exports.each_line do |line|
+              if line.includes?("Name:")
+                parts = line.split("Name:")
+                if parts.size > 1
+                  sym = parts[1].strip
+                  sym = sym.sub(/^\.refptr\./, "")
+                  if (sym.starts_with?("rb_") || sym.starts_with?("ruby_") || sym.starts_with?("Init_")) && !DANGEROUS_EXPORTS.includes?(sym)
+                    symbols << sym
+                  end
+                end
+              end
+            end
+          end
+        end
+
+        if symbols.empty? && Process.find_executable("dumpbin")
+          raw_exports = `dumpbin /exports \"#{dll_path}\"`
+          raw_exports.each_line do |line|
+            parts = line.strip.split
+            if parts.size >= 4
+              sym = parts[3]
+              if (sym.starts_with?("rb_") || sym.starts_with?("ruby_") || sym.starts_with?("Init_")) && !DANGEROUS_EXPORTS.includes?(sym)
+                symbols << sym
+              end
+            end
+          end
+        end
+
+        if symbols.empty?
+          raise "No valid Ruby exported symbols found in #{dll_path}"
         end
 
         puts "[Rubellite] Extracted #{symbols.size} safe Ruby API symbols (filtered out #{DANGEROUS_EXPORTS.size} conflicting Win32 symbols)"
@@ -73,7 +117,9 @@ module Rubellite
         end
 
         # Run llvm-dlltool
-        cmd = "llvm-dlltool -m i386:x86-64 -d \"#{output_def}\" -l \"#{output_lib}\" -D \"#{dll_name}\""
+        dlltool = Process.find_executable("llvm-dlltool") ||
+                  (File.exists?("C:/Program Files/LLVM/bin/llvm-dlltool.exe") ? "C:/Program Files/LLVM/bin/llvm-dlltool.exe" : "llvm-dlltool")
+        cmd = "\"#{dlltool}\" -m i386:x86-64 -d \"#{output_def}\" -l \"#{output_lib}\" -D \"#{dll_name}\""
         puts "[Rubellite] Running: #{cmd}"
         system(cmd) || raise "llvm-dlltool failed to create #{output_lib}"
 
