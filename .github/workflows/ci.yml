@@ -43,11 +43,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ruby-dev pkg-config radare2 gcc
+          RUBY_LIBDIR=$(ruby -e "require 'rbconfig'; puts RbConfig::CONFIG['libdir']")
+          echo "LD_LIBRARY_PATH=$RUBY_LIBDIR:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Install macOS Dependencies
         if: runner.os == 'macOS'
         run: |
           brew install radare2 pkg-config
+          RUBY_LIBDIR=$(ruby -e "require 'rbconfig'; puts RbConfig::CONFIG['libdir']")
+          echo "DYLD_LIBRARY_PATH=$RUBY_LIBDIR:$DYLD_LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Setup Windows Dependencies
         if: runner.os == 'Windows'

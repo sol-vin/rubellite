@@ -34,9 +34,19 @@ module Rubellite
         # 3. VM Boot & load paths
         LibRuby.ruby_init
         LibRuby.ruby_init_loadpath
+        LibRuby.ruby_script("rubellite")
 
-        # 4. Set default script name in Ruby
-        eval_internal("$0 = 'rubellite'")
+        # 4. Bootstrap load paths with active Ruby standard library directories
+        begin
+          load_paths = `ruby -e "puts $LOAD_PATH.join(';;;')"` rescue ""
+          if !load_paths.empty?
+            load_paths.strip.split(";;;").reject(&.empty?).each do |p|
+              escaped = p.gsub('\\', '/')
+              eval_internal("$LOAD_PATH.unshift('#{escaped}') unless $LOAD_PATH.include?('#{escaped}')")
+            end
+          end
+        rescue
+        end
 
         @@initialized = true
       end

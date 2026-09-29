@@ -27,8 +27,8 @@ describe Rubellite::Engine do
   end
 
   it "requires standard libraries" do
-    Rubellite.require("digest").should be_a(Bool)
-    sha = Rubellite.eval("Digest::SHA256.hexdigest('crystal')").to_s
-    sha.size.should eq(64)
+    Rubellite.require("set").should be_a(Bool)
+    res = Rubellite.eval("Set.new([10, 20, 30]).size").to_i64
+    res.should eq(3_i64)
   end
 end

@@ -1,7 +1,7 @@
 {% if flag?(:windows) %}
   @[Link(ldflags: "\"#{__DIR__}/../../ext/ruby_clean.lib\"")]
 {% else %}
-  @[Link(ldflags: "`ruby -e 'require %{rbconfig}; puts %{-L\#{RbConfig::CONFIG[%{libdir}]} -l\#{RbConfig::CONFIG[%{RUBY_SO_NAME}]}}' 2>/dev/null || pkg-config --libs ruby-3.4 2>/dev/null || pkg-config --libs ruby-3.3 2>/dev/null || pkg-config --libs ruby-3.2 2>/dev/null || echo -lruby`")]
+  @[Link(ldflags: "`ruby -e 'require %{rbconfig}; libdir = RbConfig::CONFIG[%{libdir}]; name = RbConfig::CONFIG[%{RUBY_SO_NAME}]; puts %{-L\#{libdir} -Wl,-rpath,\#{libdir} -l\#{name}}' 2>/dev/null || pkg-config --libs ruby-3.4 2>/dev/null || pkg-config --libs ruby-3.3 2>/dev/null || pkg-config --libs ruby-3.2 2>/dev/null || echo -lruby`")]
 {% end %}
 lib LibRuby
   alias Value = UInt64
@@ -24,6 +24,7 @@ lib LibRuby
   fun ruby_init_stack(addr : Void*) : Void
   fun ruby_init : Void
   fun ruby_init_loadpath : Void
+  fun ruby_script(name : UInt8*) : Void
   fun ruby_cleanup(code : Int32) : Int32
   fun ruby_finalize : Void
 
