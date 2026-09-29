@@ -57,7 +57,7 @@ module Rubellite
         r2_bin = find_r2_exe
 
         # Query exported symbols using r2
-        raw_output = `\"#{r2_bin}\" -q -c "iE" \"#{path}\"`
+        raw_output = `\"#{r2_bin}\" -q -2 -e bin.relocs.apply=false -c "iE" \"#{path}\"`
         exported = Set(String).new
 
         raw_output.each_line do |line|
@@ -71,7 +71,7 @@ module Rubellite
         end
 
         if exported.empty?
-          raw_output = `\"#{r2_bin}\" -q -c "is" \"#{path}\"`
+          raw_output = `\"#{r2_bin}\" -q -2 -e bin.relocs.apply=false -c "is" \"#{path}\"`
           raw_output.each_line do |line|
             line = line.strip
             next if line.empty? || line.starts_with?("WARN") || line.starts_with?("ERROR")
@@ -118,7 +118,7 @@ module Rubellite
       # Disassembles a given Ruby exported function using radare2
       def self.disassemble(path : String, symbol_name : String, instructions : Int32 = 10) : String
         r2_bin = find_r2_exe
-        exports = `\"#{r2_bin}\" -q -c "iE~#{symbol_name}" \"#{path}\"`
+        exports = `\"#{r2_bin}\" -q -2 -e bin.relocs.apply=false -c "iE~#{symbol_name}" \"#{path}\"`
         addr = ""
         exports.each_line do |line|
           parts = line.strip.split
@@ -129,7 +129,7 @@ module Rubellite
         end
 
         if addr.empty?
-          exports = `\"#{r2_bin}\" -q -c "is~#{symbol_name}" \"#{path}\"`
+          exports = `\"#{r2_bin}\" -q -2 -e bin.relocs.apply=false -c "is~#{symbol_name}" \"#{path}\"`
           exports.each_line do |line|
             parts = line.strip.split
             if parts.size >= 3 && (parts.last == symbol_name || parts.last == "_#{symbol_name}")
@@ -141,7 +141,7 @@ module Rubellite
 
         return "Symbol #{symbol_name} not found in exports" if addr.empty?
 
-        cmd = "\"#{r2_bin}\" -q -c \"s #{addr}; pd #{instructions}\" \"#{path}\""
+        cmd = "\"#{r2_bin}\" -q -2 -e bin.relocs.apply=false -c \"s #{addr}; pd #{instructions}\" \"#{path}\""
         `#{cmd}`
       end
 

@@ -25,6 +25,8 @@ lib LibRuby
   fun ruby_init : Void
   fun ruby_init_loadpath : Void
   fun ruby_script(name : UInt8*) : Void
+  fun ruby_options(argc : Int32, argv : UInt8**) : Void*
+  fun ruby_exec_node(node : Void*) : Int32
   fun ruby_cleanup(code : Int32) : Int32
   fun ruby_finalize : Void
 

@@ -27,8 +27,8 @@ describe Rubellite::Engine do
   end
 
   it "requires standard libraries" do
-    Rubellite.require("set").should be_a(Bool)
-    res = Rubellite.eval("Set.new([10, 20, 30]).size").to_i64
-    res.should eq(3_i64)
+    Rubellite.require("cgi").should be_a(Bool)
+    res = Rubellite.eval("CGI.escape('rubellite gemstone')").to_s
+    res.should eq("rubellite+gemstone")
   end
 end

@@ -36,9 +36,18 @@ module Rubellite
         LibRuby.ruby_init_loadpath
         LibRuby.ruby_script("rubellite")
 
-        # 4. Bootstrap load paths with active Ruby standard library directories
+        # 4. Bootstrap options to initialize core encodings and standard environment
+        opts = [
+          "rubellite".to_unsafe,
+          "-e".to_unsafe,
+          "".to_unsafe
+        ]
+        node = LibRuby.ruby_options(3, opts.to_unsafe)
+        LibRuby.ruby_exec_node(node) unless node.null?
+
+        # 5. Bootstrap load paths with active Ruby standard library directories
         begin
-          load_paths = `ruby -e "puts $LOAD_PATH.join(';;;')"` rescue ""
+          load_paths = `ruby -e "require 'rbconfig'; puts [RbConfig::CONFIG['rubylibdir'], RbConfig::CONFIG['rubyarchdir']].compact.join(';;;')"` rescue ""
           if !load_paths.empty?
             load_paths.strip.split(";;;").reject(&.empty?).each do |p|
               escaped = p.gsub('\\', '/')
