@@ -1,0 +1,16 @@
+/bin/
+/lib/
+/docs/
+/tmp/
+*.exe
+*.pdb
+*.obj
+*.o
+*.lib
+*.a
+*.def
+*.log
+.shards/
+shard.lock
+!ext/ruby_clean.lib
+!ext/ruby_clean.def

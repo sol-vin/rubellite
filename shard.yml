@@ -1,0 +1,25 @@
+name: rubellite
+version: 0.1.0
+
+authors:
+  - sol-vin
+
+repository: https://github.com/sol-vin/rubellite
+homepage: https://github.com/sol-vin/rubellite
+
+description: |
+  Rubellite: High-performance Crystal <-> Ruby interop bindings, Spinel AOT compiler integration, Channel concurrency, and radare2 diagnostics.
+
+license: MIT
+
+dependencies:
+  cradare2:
+    github: sol-vin/cradare2
+    branch: master
+  opal:
+    github: sol-vin/opal
+    branch: main
+
+targets:
+  rubellite:
+    main: src/rubellite_cli.cr

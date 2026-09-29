@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }}, Ruby ${{ matrix.ruby }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        ruby: ['3.3']
+        include:
+          - os: ubuntu-latest
+            ruby: '3.2'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: latest
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: Install Linux Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libruby-dev ruby-dev pkg-config radare2 gcc
+
+      - name: Install macOS Dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew install radare2 pkg-config
+
+      - name: Setup Windows Import Library
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          # Ensure radare2 and llvm tools are available if regeneration is needed
+          if [ ! -f "ext/ruby_clean.lib" ]; then
+            shards install
+            crystal run src/rubellite/tooling/import_lib_generator.cr
+          fi
+
+      - name: Install Shards
+        run: shards install
+
+      - name: Build Rubellite CLI
+        run: shards build rubellite
+
+      - name: Run CLI Doctor
+        run: ./bin/rubellite doctor
+        shell: bash
+
+      - name: Run Test Suite
+        run: |
+          crystal spec --verbose spec/all_spec.cr
+        shell: bash
+
+      - name: Run Benchmarks
+        run: ./bin/rubellite bench
+        shell: bash
+
+      - name: Run Examples
+        run: |
+          crystal run examples/01_basic_eval.cr
+          crystal run examples/02_type_conversions_and_hash.cr
+          crystal run examples/03_calling_ruby_methods_and_blocks.cr
+          crystal run examples/04_defining_ruby_classes_in_crystal.cr
+          crystal run examples/05_channel_and_fiber_concurrency.cr
+          crystal run examples/06_spinel_aot_fastpath.cr
+          crystal run examples/07_r2_binary_forensics.cr
+        shell: bash
