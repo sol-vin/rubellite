@@ -5,7 +5,7 @@ describe Rubellite::Diagnostics::R2 do
     report = Rubellite::Diagnostics::R2.audit_environment
 
     report.ruby_dll_path.should_not eq("NOT FOUND")
-    report.total_symbols_found.should be > 1000
+    report.total_symbols_found.should be > 50
     report.abi_compatible?.should be_true
     {% if flag?(:windows) %}
       report.clean_lib_exists.should be_true

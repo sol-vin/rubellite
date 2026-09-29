@@ -40,12 +40,24 @@ module Rubellite
         "rb_thread_call_without_gvl"
       ]
 
+      def self.find_r2_exe : String
+        Process.find_executable("r2") ||
+          [
+            "/opt/homebrew/bin/r2",
+            "/usr/local/bin/r2",
+            "/usr/bin/r2",
+            "C:/ProgramData/chocolatey/bin/r2.exe",
+            "C:/tools/radare2/bin/r2.exe"
+          ].find { |p| File.file?(p) } || "r2"
+      end
+
       # Audits the target Ruby binary / DLL using radare2
       def self.audit_ruby_binary(path : String = Tooling::ImportLibGenerator.find_ruby_dll) : AuditReport
         report = AuditReport.new(path)
+        r2_bin = find_r2_exe
 
         # Query exported symbols using r2
-        raw_output = `r2 -q -c "iE" "#{path}"`
+        raw_output = `\"#{r2_bin}\" -q -c "iE" \"#{path}\"`
         exported = Set(String).new
 
         raw_output.each_line do |line|
@@ -53,14 +65,30 @@ module Rubellite
           next if line.empty? || line.starts_with?("WARN") || line.starts_with?("ERROR")
           parts = line.split
           next if parts.size < 6
-          exported << parts.last
+          sym = parts.last
+          exported << sym
+          exported << sym.sub(/^_/, "")
+        end
+
+        if exported.empty?
+          raw_output = `\"#{r2_bin}\" -q -c "is" \"#{path}\"`
+          raw_output.each_line do |line|
+            line = line.strip
+            next if line.empty? || line.starts_with?("WARN") || line.starts_with?("ERROR")
+            parts = line.split
+            next if parts.size < 6
+            sym = parts.last
+            exported << sym
+            exported << sym.sub(/^_/, "")
+          end
         end
 
         report.total_symbols_found = exported.size
+        return report if exported.empty?
 
         # Check required symbols
         REQUIRED_RUBY_SYMBOLS.each do |sym|
-          unless exported.includes?(sym)
+          unless exported.includes?(sym) || exported.includes?("_#{sym}")
             report.missing_required_symbols << sym
             report.required_symbols_present = false
           end
@@ -68,7 +96,7 @@ module Rubellite
 
         # Check dangerous collisions
         Tooling::ImportLibGenerator::DANGEROUS_EXPORTS.each do |danger|
-          if exported.includes?(danger)
+          if exported.includes?(danger) || exported.includes?("_#{danger}")
             report.dangerous_collisions_detected << danger
           end
         end
@@ -89,19 +117,31 @@ module Rubellite
 
       # Disassembles a given Ruby exported function using radare2
       def self.disassemble(path : String, symbol_name : String, instructions : Int32 = 10) : String
-        exports = `r2 -q -c "iE~#{symbol_name}" "#{path}"`
+        r2_bin = find_r2_exe
+        exports = `\"#{r2_bin}\" -q -c "iE~#{symbol_name}" \"#{path}\"`
         addr = ""
         exports.each_line do |line|
           parts = line.strip.split
-          if parts.size >= 3 && parts.last == symbol_name
+          if parts.size >= 3 && (parts.last == symbol_name || parts.last == "_#{symbol_name}")
             addr = parts[1]
             break
           end
         end
 
+        if addr.empty?
+          exports = `\"#{r2_bin}\" -q -c "is~#{symbol_name}" \"#{path}\"`
+          exports.each_line do |line|
+            parts = line.strip.split
+            if parts.size >= 3 && (parts.last == symbol_name || parts.last == "_#{symbol_name}")
+              addr = parts[1]
+              break
+            end
+          end
+        end
+
         return "Symbol #{symbol_name} not found in exports" if addr.empty?
 
-        cmd = "r2 -q -c \"s #{addr}; pd #{instructions}\" \"#{path}\""
+        cmd = "\"#{r2_bin}\" -q -c \"s #{addr}; pd #{instructions}\" \"#{path}\""
         `#{cmd}`
       end
 
