@@ -94,6 +94,13 @@ module Rubellite
       eval(const_name)
     end
 
+    # Safely resolves a Ruby constant, returning nil if undefined
+    def self.[]?(const_name : String) : Value?
+      eval(const_name)
+    rescue
+      nil
+    end
+
     # Internal protected eval implementation
     private def self.eval_internal(code : String) : Value
       state = 0
@@ -116,6 +123,10 @@ module Rubellite
 
   def self.initialized? : Bool
     Engine.initialized?
+  end
+
+  def self.ensure_init! : Nil
+    Engine.init unless Engine.initialized?
   end
 
   def self.start(&block)
@@ -142,4 +153,12 @@ module Rubellite
   def self.[](const_name : String) : Value
     Engine[const_name]
   end
+
+  def self.[]?(const_name : String) : Value?
+    Engine[const_name]?
+  end
 end
+
+# Ergonomic top-level alias for Rubellite
+Ruby = Rubellite
+

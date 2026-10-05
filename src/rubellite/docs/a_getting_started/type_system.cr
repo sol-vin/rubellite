@@ -90,7 +90,7 @@ module Rubellite
         #
         # Rubellite.init
         #
-        # # Convert Crystal scalars to Ruby values
+        # # Convert Crystal scalars and collections to Ruby values (auto-inits)
         # val_int = 42.to_ruby
         # val_str = "Hello Crystal".to_ruby
         # val_arr = [1, 2, 3].to_ruby
@@ -98,17 +98,28 @@ module Rubellite
         # # Unpack Ruby values back into Crystal types
         # puts val_int.as_crystal # => 42_i64
         # puts val_str.as_crystal # => "Hello Crystal"
-        # puts val_arr.as_crystal # => [1_i64, 2_i64, 3_i64]
+        #
+        # # Typed collection unboxing
+        # raw_arr = Ruby.eval("[10, 20, 30]")
+        # typed_arr = raw_arr.to_a(Int32) # Array(Int32)
+        #
+        # # Deep recursive unboxing for nested structures
+        # complex_rb = Ruby.eval("{ 'tags' => ['cr', 'rb'], 'score' => 99 }")
+        # native_map = complex_rb.as_crystal_deep # Hash(String, Rubellite::DeepValue)
         # ```
         #
         # #### Common Pitfalls & Safety Caveats
         #
         # - **Warning**: Large integers exceeding 63 bits are converted to Ruby Bignum automatically, which incurs heap allocation.
+        # - **Warning**: Use `as_crystal_deep` for recursively converting entire nested trees into Crystal collections.
         #
         # #### Frequently Asked Questions (FAQ)
         #
         # - **Q: Can I convert Crystal NamedTuples to Ruby?**
         #   A: Yes, NamedTuples are converted into Ruby Hashes with Symbol keys.
+        #
+        # - **Q: What scalar unboxers exist on Value?**
+        #   A: Value provides `as_i`, `as_i64`, `as_f`, `as_s`, `as_bool`, and `as_nil`.
         #
         def self.topic_01_scalar_mapping : Nil; end
       end

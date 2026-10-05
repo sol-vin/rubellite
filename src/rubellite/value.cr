@@ -169,23 +169,55 @@ module Rubellite
     # Dynamic Method Invocation
     # =========================================================================
 
-    # Invokes a method on the Ruby object
+    # Structs to safely pass call arguments into rb_protect callbacks
+    private struct FuncallData
+      property recv : LibRuby::Value
+      property mid : LibRuby::Id
+      property argc : Int32
+      property argv : LibRuby::Value*
+      def initialize(@recv, @mid, @argc, @argv); end
+    end
+
+    private struct BlockCallData
+      property recv : LibRuby::Value
+      property mid : LibRuby::Id
+      property argc : Int32
+      property argv : LibRuby::Value*
+      property callback : (LibRuby::Value, LibRuby::Value, Int32, LibRuby::Value* -> LibRuby::Value)
+      property data2 : LibRuby::Value
+      def initialize(@recv, @mid, @argc, @argv, @callback, @data2); end
+    end
+
+    # Invokes a method on the Ruby object with protected execution
     def call(method_name : String | Symbol, *args) : Value
       mid = LibRuby.rb_intern(method_name.to_s.to_unsafe)
       argc = args.size
-      if argc == 0
-        res = LibRuby.rb_funcallv(@raw, mid, 0, Pointer(LibRuby::Value).null)
-      else
-        raw_args = Array(LibRuby::Value).new(argc)
-        args.each do |a|
-          raw_args << (a.is_a?(Value) ? a.raw : a.to_ruby.raw)
-        end
-        res = LibRuby.rb_funcallv(@raw, mid, argc, raw_args.to_unsafe)
+      raw_args_ary = if argc > 0
+                       arr = Array(LibRuby::Value).new(argc)
+                       args.each do |a|
+                         arr << (a.is_a?(Value) ? a.raw : a.to_ruby.raw)
+                       end
+                       arr
+                     else
+                       nil
+                     end
+      raw_args = raw_args_ary ? raw_args_ary.to_unsafe : Pointer(LibRuby::Value).null
+
+      call_data = FuncallData.new(@raw, mid, argc, raw_args)
+      fn = ->(arg : Void*) : LibRuby::Value {
+        cd = arg.as(FuncallData*)
+        LibRuby.rb_funcallv(cd.value.recv, cd.value.mid, cd.value.argc, cd.value.argv)
+      }
+
+      state = 0
+      res = LibRuby.rb_protect(fn, pointerof(call_data).as(Void*), pointerof(state))
+      if state != 0
+        raise Error.from_ruby_errinfo
       end
       Value.new(res)
     end
 
-    # Invokes a method while passing a Crystal block as a Ruby block
+    # Invokes a method while passing a Crystal block as a Ruby block with protected execution
     def call_with_block(method_name : String | Symbol, *args, &block : Array(Value) -> Value) : Value
       mid = LibRuby.rb_intern(method_name.to_s.to_unsafe)
       argc = args.size
@@ -214,13 +246,144 @@ module Rubellite
         proc.call(values).raw
       }
 
-      res = LibRuby.rb_block_call(@raw, mid, argc, raw_args, callback, LibRuby::Value.new(boxed_block.address))
+      call_data = BlockCallData.new(@raw, mid, argc, raw_args, callback, LibRuby::Value.new(boxed_block.address))
+      fn = ->(arg : Void*) : LibRuby::Value {
+        bcd = arg.as(BlockCallData*)
+        LibRuby.rb_block_call(bcd.value.recv, bcd.value.mid, bcd.value.argc, bcd.value.argv, bcd.value.callback, bcd.value.data2)
+      }
+
+      state = 0
+      res = LibRuby.rb_protect(fn, pointerof(call_data).as(Void*), pointerof(state))
+      if state != 0
+        raise Error.from_ruby_errinfo
+      end
       Value.new(res)
+    end
+
+    # Invokes a method with a block, delegating to call_with_block
+    def call(method_name : String | Symbol, *args, &block : Array(Value) -> Value) : Value
+      call_with_block(method_name, *args, &block)
     end
 
     # =========================================================================
     # Collection Access & Operator Overloading
     # =========================================================================
+
+    def size : Int32
+      call("length").to_i32
+    end
+
+    def length : Int32
+      size
+    end
+
+    def empty? : Bool
+      call("empty?").to_bool
+    end
+
+    def keys : Array(Value)
+      call("keys").to_a
+    end
+
+    def values : Array(Value)
+      call("values").to_a
+    end
+
+    def has_key?(key) : Bool
+      return true if call("key?", key).to_bool
+      if key.is_a?(String)
+        id = LibRuby.rb_intern(key.to_unsafe)
+        sym_val = Value.new((id << 8) | LibRuby::SYMBOL_FLAG)
+        call("key?", sym_val).to_bool
+      elsif key.is_a?(Symbol)
+        call("key?", key.to_s).to_bool
+      else
+        false
+      end
+    rescue
+      false
+    end
+
+    # Safe nested key navigation across Hashes and Arrays (transparently handles String and Symbol keys)
+    def dig(*keys) : Value?
+      current = self
+      keys.each do |k|
+        return nil if current.ruby_nil?
+        if current.hash?
+          val = current[k]
+          if val.ruby_nil? && k.is_a?(String)
+            id = LibRuby.rb_intern(k.to_unsafe)
+            sym_val = Value.new((id << 8) | LibRuby::SYMBOL_FLAG)
+            val = current[sym_val]
+          elsif val.ruby_nil? && k.is_a?(Symbol)
+            val = current[k.to_s]
+          end
+          current = val
+        elsif current.array?
+          idx = k.is_a?(Int) ? k : k.to_s.to_i?
+          return nil unless idx
+          current = current[idx]
+        elsif current.respond_to?("[]")
+          current = current[k]
+        else
+          return nil
+        end
+      end
+      current.ruby_nil? ? nil : current
+    rescue
+      nil
+    end
+
+    # Iterates over each element in a Ruby Enumerable / Array
+    def each(&block : Value -> Nil) : Nil
+      call_with_block("each") do |args|
+        block.call(args[0]) if args.size > 0
+        Value.new(LibRuby::Qnil)
+      end
+    end
+
+    # Iterates over key-value pairs in a Ruby Hash
+    def each_pair(&block : (Value, Value) -> Nil) : Nil
+      call_with_block("each_pair") do |args|
+        if args.size >= 2
+          block.call(args[0], args[1])
+        elsif args.size == 1 && args[0].array?
+          pair = args[0].to_a
+          block.call(pair[0], pair[1]) if pair.size >= 2
+        end
+        Value.new(LibRuby::Qnil)
+      end
+    end
+
+    # Introspection: checks if the Ruby object responds to a method
+    def respond_to?(method_name : String | Symbol) : Bool
+      call("respond_to?", method_name.to_s).to_bool
+    end
+
+    # Introspection: checks if the Ruby object is a kind of a Ruby class
+    def kind_of?(class_name : String) : Bool
+      klass = Rubellite[class_name]?
+      return false unless klass
+      call("kind_of?", klass).to_bool
+    rescue
+      false
+    end
+
+    def ruby_is_a?(class_name : String) : Bool
+      kind_of?(class_name)
+    end
+
+    # Safe method dispatch: returns nil if an exception or NoMethodError occurs
+    def call?(method_name : String | Symbol, *args) : Value?
+      call(method_name, *args)
+    rescue
+      nil
+    end
+
+    # Alias for call
+    def send(method_name : String | Symbol, *args) : Value
+      call(method_name, *args)
+    end
 
     def [](key) : Value
       call("[]", key)

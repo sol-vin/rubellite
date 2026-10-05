@@ -78,6 +78,7 @@ lib LibRuby
   fun rb_const_get(klass : Value, id : Id) : Value
   fun rb_obj_classname(obj : Value) : UInt8*
   fun rb_inspect(val : Value) : Value
+  fun rb_frame_this_func : Id
 
   # Exceptions
   fun rb_errinfo : Value

@@ -14,50 +14,46 @@ related_sources:
 sections:
   - id: topic_01_eval_and_methods
     title: Evaluating Scripts & Invoking Methods
-    summary: Running code strings and dispatching methods dynamically.
+    summary: Running code strings and dispatching methods dynamically with zero boilerplate.
     content: |
-      Rubellite offers high-level helpers on `Rubellite` and rich methods on `Rubellite::Value`.
+      Rubellite offers high-level helpers on the `Ruby` (or `Rubellite`) module and rich ergonomics on `Rubellite::Value`.
+      Initialization is completely automatic: calling `Ruby.eval`, accessing `Ruby["Constant"]`, or invoking `.to_ruby` boots the VM seamlessly on demand.
 
       | API Method | Target | Description |
       | :--- | :--- | :--- |
-      | `Rubellite.eval(code)` | Global | Parses and executes a Ruby code string |
-      | `value.call(method, *args)` | Object | Invokes a method on a Ruby object with arguments |
-      | `value.call(method) { |blk| ... }` | Object | Passes a Crystal block to a Ruby method |
+      | `Ruby.eval(code)` | Global | Parses and executes a Ruby code string (auto-inits VM) |
+      | `Ruby[const_name]` | Global | Resolves a top-level Ruby constant (e.g. `Ruby["JSON"]`) |
+      | `Ruby[const_name]?` | Global | Safely resolves a constant, returning `nil` if undefined |
+      | `value.call(method, *args)` | Object | Invokes a method with protected SEH execution |
+      | `value.call?(method, *args)` | Object | Safe call returning `nil` if an exception occurs |
+      | `value.dig(*keys)` | Collection | Safe nested key retrieval across Hashes and Arrays |
+      | `value.each(&blk)` | Collection | Yields elements to a Crystal block |
+      | `Rubellite.export(name, &blk)` | Global | Exposes a Crystal Proc directly to Ruby as `Rubellite.<name>` |
 
     examples:
       - |
         ```crystal
         require "rubellite"
 
-        Rubellite.init
+        # Auto-initialization: No explicit Rubellite.init needed!
+        json = Ruby["JSON"]
+        parsed = json.call("parse", %({"name": "Rubellite", "tags": ["crystal", "ruby"]}))
 
-        # Define a Ruby class dynamically
-        Rubellite.eval(<<-RUBY)
-          class Calculator
-            def add(a, b)
-              a + b
-            end
+        # Safe nested navigation (interchangeably handles Symbol and String keys)
+        puts parsed.dig("tags", 0).try(&.to_s) # => "crystal"
 
-            def transform(list, &block)
-              list.map(&block)
-            end
-          end
-        RUBY
-
-        calc = Rubellite.eval("Calculator.new")
-        sum = calc.call("add", 15, 27)
-        puts "Sum: #{sum.to_i64}" # => 42
-
-        # Pass a Crystal block to Ruby Enumerable methods
-        array = Rubellite.eval("[1, 2, 3, 4, 5]")
-        doubled = array.call("map") do |item|
-          item.to_i64 * 2
+        # Bidirectional Crystal function export
+        Rubellite.export("add_numbers") do |args|
+          (args[0].to_i64 + args[1].to_i64).to_ruby
         end
+
+        result = Ruby.eval("Rubellite.add_numbers(19, 23)")
+        puts result.to_i64 # => 42
         ```
 
     pitfalls:
-      - "Ruby exceptions raised in eval or call are wrapped into Crystal `Rubellite::Error` exceptions."
-      - "Do not capture long-lived Crystal pointers inside Ruby blocks without pinning."
+      - "Ruby exceptions raised in eval or call are wrapped into Crystal `Rubellite::Error` exceptions preserving backtraces."
+      - "CRuby allows only one initialization per OS process. Automatic initialization manages this safely."
 
     faqs:
       - q: "How do I catch Ruby errors in Crystal?"

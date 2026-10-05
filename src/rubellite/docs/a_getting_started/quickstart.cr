@@ -26,7 +26,7 @@ module Rubellite
       #     <tr>
       #       <td><strong>Evaluating Scripts & Invoking Methods</strong></td>
       #       <td><code>.topic_01_eval_and_methods</code></td>
-      #       <td>Running code strings and dispatching methods dynamically.</td>
+      #       <td>Running code strings and dispatching methods dynamically with zero boilerplate.</td>
       #     </tr>
       #   </tbody>
       # </table>
@@ -37,9 +37,10 @@ module Rubellite
       # - src/rubellite/value.cr
       #
       module QUICKSTART
-        # **Evaluating Scripts & Invoking Methods**: Running code strings and dispatching methods dynamically.
+        # **Evaluating Scripts & Invoking Methods**: Running code strings and dispatching methods dynamically with zero boilerplate.
         #
-        # Rubellite offers high-level helpers on `Rubellite` and rich methods on `Rubellite::Value`.
+        # Rubellite offers high-level helpers on the `Ruby` (or `Rubellite`) module and rich ergonomics on `Rubellite::Value`.
+        # Initialization is completely automatic: calling `Ruby.eval`, accessing `Ruby["Constant"]`, or invoking `.to_ruby` boots the VM seamlessly on demand.
         #
         # <table>
         #   <thead>
@@ -51,21 +52,44 @@ module Rubellite
         #   </thead>
         #   <tbody>
         #     <tr>
-        #       <td>`Rubellite.eval(code)`</td>
+        #       <td>`Ruby.eval(code)`</td>
         #       <td>Global</td>
-        #       <td>Parses and executes a Ruby code string</td>
+        #       <td>Parses and executes a Ruby code string (auto-inits VM)</td>
+        #     </tr>
+        #     <tr>
+        #       <td>`Ruby[const_name]`</td>
+        #       <td>Global</td>
+        #       <td>Resolves a top-level Ruby constant (e.g. `Ruby["JSON"]`)</td>
+        #     </tr>
+        #     <tr>
+        #       <td>`Ruby[const_name]?`</td>
+        #       <td>Global</td>
+        #       <td>Safely resolves a constant, returning `nil` if undefined</td>
         #     </tr>
         #     <tr>
         #       <td>`value.call(method, *args)`</td>
         #       <td>Object</td>
-        #       <td>Invokes a method on a Ruby object with arguments</td>
+        #       <td>Invokes a method with protected SEH execution</td>
         #     </tr>
         #     <tr>
-        #       <td>`value.call(method) {</td>
-        #       <td>blk</td>
-        #       <td>... }`</td>
+        #       <td>`value.call?(method, *args)`</td>
         #       <td>Object</td>
-        #       <td>Passes a Crystal block to a Ruby method</td>
+        #       <td>Safe call returning `nil` if an exception occurs</td>
+        #     </tr>
+        #     <tr>
+        #       <td>`value.dig(*keys)`</td>
+        #       <td>Collection</td>
+        #       <td>Safe nested key retrieval across Hashes and Arrays</td>
+        #     </tr>
+        #     <tr>
+        #       <td>`value.each(&blk)`</td>
+        #       <td>Collection</td>
+        #       <td>Yields elements to a Crystal block</td>
+        #     </tr>
+        #     <tr>
+        #       <td>`Rubellite.export(name, &blk)`</td>
+        #       <td>Global</td>
+        #       <td>Exposes a Crystal Proc directly to Ruby as `Rubellite.<name>`</td>
         #     </tr>
         #   </tbody>
         # </table>
@@ -75,36 +99,26 @@ module Rubellite
         # ```crystal
         # require "rubellite"
         #
-        # Rubellite.init
+        # # Auto-initialization: No explicit Rubellite.init needed!
+        # json = Ruby["JSON"]
+        # parsed = json.call("parse", %({"name": "Rubellite", "tags": ["crystal", "ruby"]}))
         #
-        # # Define a Ruby class dynamically
-        # Rubellite.eval(<<-RUBY)
-        #   class Calculator
-        #     def add(a, b)
-        #       a + b
-        #     end
+        # # Safe nested navigation (interchangeably handles Symbol and String keys)
+        # puts parsed.dig("tags", 0).try(&.to_s) # => "crystal"
         #
-        #     def transform(list, &block)
-        #       list.map(&block)
-        #     end
-        #   end
-        # RUBY
-        #
-        # calc = Rubellite.eval("Calculator.new")
-        # sum = calc.call("add", 15, 27)
-        # puts "Sum: #{sum.to_i64}" # => 42
-        #
-        # # Pass a Crystal block to Ruby Enumerable methods
-        # array = Rubellite.eval("[1, 2, 3, 4, 5]")
-        # doubled = array.call("map") do |item|
-        #   item.to_i64 * 2
+        # # Bidirectional Crystal function export
+        # Rubellite.export("add_numbers") do |args|
+        #   (args[0].to_i64 + args[1].to_i64).to_ruby
         # end
+        #
+        # result = Ruby.eval("Rubellite.add_numbers(19, 23)")
+        # puts result.to_i64 # => 42
         # ```
         #
         # #### Common Pitfalls & Safety Caveats
         #
-        # - **Warning**: Ruby exceptions raised in eval or call are wrapped into Crystal `Rubellite::Error` exceptions.
-        # - **Warning**: Do not capture long-lived Crystal pointers inside Ruby blocks without pinning.
+        # - **Warning**: Ruby exceptions raised in eval or call are wrapped into Crystal `Rubellite::Error` exceptions preserving backtraces.
+        # - **Warning**: CRuby allows only one initialization per OS process. Automatic initialization manages this safely.
         #
         # #### Frequently Asked Questions (FAQ)
         #
