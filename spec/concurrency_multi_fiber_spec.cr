@@ -7,14 +7,24 @@ describe "Rubellite Multi-Fiber Concurrency & Synchronization" do
     20.times do |i|
       fiber_i = i
       spawn do
-        res = Ruby.eval("#{fiber_i} * 10 + 5").to_i64
-        done_chan.send(res)
+        begin
+          res = Ruby.eval("#{fiber_i} * 10 + 5").to_i64
+          done_chan.send(res)
+        rescue
+          done_chan.send(-1_i64)
+        end
       end
     end
 
     results = [] of Int64
     20.times do
-      results << done_chan.receive
+      val = select
+      when res = done_chan.receive
+        res
+      when timeout(10.seconds)
+        fail("Timed out waiting for fiber eval")
+      end
+      results << val
     end
 
     results.size.should eq(20)
@@ -45,9 +55,13 @@ describe "Rubellite Multi-Fiber Concurrency & Synchronization" do
         loop do
           task = tasks.receive?
           break unless task
-          # Workers invoke Ruby math
-          computed = Ruby.eval("Math.sqrt(#{task * 100}).to_i").to_i64
-          results.send(computed)
+          begin
+            # Workers invoke Ruby math
+            computed = Ruby.eval("Math.sqrt(#{task * 100}).to_i").to_i64
+            results.send(computed)
+          rescue
+            results.send(-1_i64)
+          end
         end
       end
     end
@@ -58,7 +72,13 @@ describe "Rubellite Multi-Fiber Concurrency & Synchronization" do
 
     collected = [] of Int64
     20.times do
-      collected << results.receive
+      val = select
+      when res = results.receive
+        res
+      when timeout(10.seconds)
+        fail("Timed out waiting for worker pool task")
+      end
+      collected << val
     end
 
     collected.size.should eq(20)
@@ -72,14 +92,23 @@ describe "Rubellite Multi-Fiber Concurrency & Synchronization" do
 
     15.times do
       spawn do
-        Ruby.synchronize do
-          Ruby.eval("$global_counter += 1")
+        begin
+          Ruby.synchronize do
+            Ruby.eval("$global_counter += 1")
+          end
+        ensure
+          done.send(nil)
         end
-        done.send(nil)
       end
     end
 
-    15.times { done.receive }
+    15.times do
+      select
+      when done.receive
+      when timeout(10.seconds)
+        fail("Timed out waiting for global mutation fiber")
+      end
+    end
 
     final_count = Ruby.eval("$global_counter").to_i64
     final_count.should eq(15_i64)
@@ -111,7 +140,13 @@ describe "Rubellite Multi-Fiber Concurrency & Synchronization" do
 
     all_ok = [] of Bool
     10.times do
-      all_ok << success_chan.receive
+      val = select
+      when res = success_chan.receive
+        res
+      when timeout(10.seconds)
+        fail("Timed out waiting for error isolation check")
+      end
+      all_ok << val
     end
 
     all_ok.all?(&.itself).should be_true
@@ -145,15 +180,25 @@ describe "Rubellite Multi-Fiber Concurrency & Synchronization" do
     10.times do |i|
       fiber_i = i
       spawn do
-        raw_json = %({"worker": #{fiber_i}, "status": "active"})
-        parsed = json_mod.call("parse", raw_json)
-        status = parsed["status"].to_s
-        results.send(status)
+        begin
+          raw_json = %({"worker": #{fiber_i}, "status": "active"})
+          parsed = json_mod.call("parse", raw_json)
+          status = parsed["status"].to_s
+          results.send(status)
+        rescue ex
+          results.send("error: #{ex.message}")
+        end
       end
     end
 
     10.times do
-      results.receive.should eq("active")
+      msg = select
+      when res = results.receive
+        res
+      when timeout(10.seconds)
+        fail("Timed out waiting for JSON parse fiber")
+      end
+      msg.should eq("active")
     end
   end
 end

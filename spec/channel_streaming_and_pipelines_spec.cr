@@ -30,7 +30,14 @@ describe "Rubellite Channel Streaming & Pipeline Architecture" do
     # Consume and compute total in Crystal
     total = 0_i64
     count = 0
-    while (val = out_chan.receive?)
+    loop do
+      val = select
+      when v = out_chan.receive?
+        v
+      when timeout(10.seconds)
+        fail("Timed out waiting for pipeline output")
+      end
+      break unless val
       total += val
       count += 1
     end
@@ -76,7 +83,12 @@ describe "Rubellite Channel Streaming & Pipeline Architecture" do
 
     5.times do |i|
       ping_chan.send(i)
-      received = pong_chan.receive
+      received = select
+      when res = pong_chan.receive
+        res
+      when timeout(10.seconds)
+        fail("Timed out waiting for pong")
+      end
       received.should eq(i + 100)
     end
   end
@@ -100,7 +112,13 @@ describe "Rubellite Channel Streaming & Pipeline Architecture" do
     original_data = Bytes[0x01, 0x00, 0x02, 0x00, 0xFE, 0xFF]
     bin_in.send(original_data)
 
-    processed = bin_out.receive
+    processed = select
+    when p = bin_out.receive
+      p
+    when timeout(10.seconds)
+      fail("Timed out waiting for bin_out")
+    end
+
     expected_header = Bytes[0x00, 0xFF, 0xAA]
     processed[0, 3].should eq(expected_header)
     processed[3, original_data.size].should eq(original_data)
@@ -142,7 +160,12 @@ describe "Rubellite Channel Streaming & Pipeline Architecture" do
     Fiber.yield
     wait_chan.close
 
-    status = result_chan.receive
+    status = select
+    when s = result_chan.receive
+      s
+    when timeout(10.seconds)
+      fail("Timed out waiting for close notification")
+    end
     status.should eq("received_nil_on_close")
   end
 end

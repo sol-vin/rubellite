@@ -1,4 +1,9 @@
 # CARBON CHANGELOG
+## [0.1.12] - 2026-10-04
+### 🐛 Bug Fixes
+- ✓ **[Concurrency]** register fiber machine stack boundary in Engine.synchronize to prevent CRuby SystemStackError and channel deadlocks
+
+---
 ## [0.1.11] - 2026-10-04
 ---
 ## [0.1.10] - 2026-10-04

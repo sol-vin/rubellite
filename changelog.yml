@@ -23,9 +23,19 @@ settings:
       title: "\U0001F6E0️ Chores & Tooling"
       bullet: •
 releases:
-- version: 0.1.11
+- version: 0.1.12
   date: "2026-10-04"
   status: active
+  entries:
+  - type: fix
+    description: register fiber machine stack boundary in Engine.synchronize to prevent
+      CRuby SystemStackError and channel deadlocks
+    bullet: ✓
+    badge: '[Concurrency]'
+    author: Ian Rash
+- version: 0.1.11
+  date: "2026-10-04"
+  status: released
   entries: []
 - version: 0.1.10
   date: "2026-10-04"

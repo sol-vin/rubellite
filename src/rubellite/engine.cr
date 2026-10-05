@@ -18,6 +18,8 @@ module Rubellite
     # Re-entrant synchronization helper for multi-fiber thread safety
     def self.synchronize(&block : -> T) : T forall T
       @@lock.synchronize do
+        stack_marker = 0_u64
+        LibRuby.ruby_init_stack(pointerof(stack_marker))
         yield
       end
     end
