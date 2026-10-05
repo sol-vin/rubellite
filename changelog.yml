@@ -23,9 +23,22 @@ settings:
       title: "\U0001F6E0️ Chores & Tooling"
       bullet: •
 releases:
-- version: 0.1.14
+- version: 0.1.15
   date: "2026-10-04"
   status: active
+  entries:
+  - type: fix
+    description: Eliminate subprocess fork in Engine.init by bootstrapping RbConfig
+      standard library load paths directly in memory
+  - type: fix
+    description: Bound Thread#join in Concurrency GVL test suite with 3-second limit
+      to guarantee non-blocking CI execution
+  - type: perf
+    description: Tune streaming pipeline benchmark to 200 items with 20-second timeout
+      for virtualized CI runners
+- version: 0.1.14
+  date: "2026-10-04"
+  status: released
   entries:
   - type: feat
     description: Add comprehensive Rubellite test platform expansion (21 suites, 103

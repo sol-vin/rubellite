@@ -33,7 +33,7 @@ describe "Rubellite GVL Concurrency & Thread Isolation" do
     end
 
     Ruby.eval("$stop_bg = true")
-    Ruby.eval("$bg_thread.join")
+    Ruby.eval("$bg_thread.join(3)")
 
     counter = Ruby.eval("$bg_counter").to_i64
     counter.should be > 0_i64

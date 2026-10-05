@@ -54,17 +54,17 @@ module Rubellite
         node = LibRuby.ruby_options(3, opts.to_unsafe)
         LibRuby.ruby_exec_node(node) unless node.null?
 
-        # 5. Bootstrap load paths with active Ruby standard library directories
-        begin
-          load_paths = `ruby -e "require 'rbconfig'; puts [RbConfig::CONFIG['rubylibdir'], RbConfig::CONFIG['rubyarchdir']].compact.join(';;;')"` rescue ""
-          if !load_paths.empty?
-            load_paths.strip.split(";;;").reject(&.empty?).each do |p|
-              escaped = p.gsub('\\', '/')
-              eval_internal("$LOAD_PATH.unshift('#{escaped}') unless $LOAD_PATH.include?('#{escaped}')")
+        # 5. Bootstrap load paths with active Ruby standard library directories in-memory
+        eval_internal(<<-RUBY)
+          begin
+            require 'rbconfig'
+            [RbConfig::CONFIG['rubylibdir'], RbConfig::CONFIG['rubyarchdir']].compact.each do |p|
+              clean_p = p.tr('\\\\', '/')
+              $LOAD_PATH.unshift(clean_p) unless $LOAD_PATH.include?(clean_p)
             end
+          rescue LoadError
           end
-        rescue
-        end
+        RUBY
 
         @@initialized = true
       end

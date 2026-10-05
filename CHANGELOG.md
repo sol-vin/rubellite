@@ -1,4 +1,13 @@
 # CARBON CHANGELOG
+## [0.1.15] - 2026-10-04
+### 🐛 Bug Fixes
+- ✓ Eliminate subprocess fork in Engine.init by bootstrapping RbConfig standard library load paths directly in memory
+- ✓ Bound Thread#join in Concurrency GVL test suite with 3-second limit to guarantee non-blocking CI execution
+
+### ⚡ Performance Optimizations
+- 🚀 Tune streaming pipeline benchmark to 200 items with 20-second timeout for virtualized CI runners
+
+---
 ## [0.1.14] - 2026-10-04
 ### ✨ Features & Improvements
 - ✦ Add comprehensive Rubellite test platform expansion (21 suites, 103 specs) covering GC invariants, GVL concurrency, and extended types

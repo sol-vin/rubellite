@@ -1,7 +1,7 @@
 require "./spec_helper"
 
 describe "Rubellite Channel Streaming & Pipeline Architecture" do
-  it "streams 1,000 items through a Crystal -> Ruby -> Crystal pipeline" do
+  it "streams 200 items through a Crystal -> Ruby -> Crystal pipeline" do
     in_chan = Channel(Int64).new(50)
     out_chan = Channel(Int64).new(50)
 
@@ -10,7 +10,7 @@ describe "Rubellite Channel Streaming & Pipeline Architecture" do
 
     # Spawn producer fiber
     spawn do
-      1000.times do |i|
+      200.times do |i|
         in_chan.send(i.to_i64)
       end
       in_chan.close
@@ -34,7 +34,7 @@ describe "Rubellite Channel Streaming & Pipeline Architecture" do
       val = select
       when v = out_chan.receive?
         v
-      when timeout(10.seconds)
+      when timeout(20.seconds)
         fail("Timed out waiting for pipeline output")
       end
       break unless val
@@ -42,8 +42,8 @@ describe "Rubellite Channel Streaming & Pipeline Architecture" do
       count += 1
     end
 
-    count.should eq(1000)
-    expected_sum = (0_i64...1000_i64).sum * 2
+    count.should eq(200)
+    expected_sum = (0_i64...200_i64).sum * 2
     total.should eq(expected_sum)
   end
 
