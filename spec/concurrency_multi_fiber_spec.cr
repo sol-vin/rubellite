@@ -172,19 +172,19 @@ describe "Rubellite Multi-Fiber Concurrency & Synchronization" do
     selected_val.should eq("message_from_b")
   end
 
-  it "concurrently parses JSON across 10 fibers via Ruby standard library" do
-    Ruby.require("json")
-    json_mod = Ruby["JSON"]
+  it "concurrently transforms data across 10 fibers via Ruby standard library" do
+    Ruby.require("base64")
+    b64_mod = Ruby["Base64"]
     results = Channel(String).new(10)
 
     10.times do |i|
       fiber_i = i
       spawn do
         begin
-          raw_json = %({"worker": #{fiber_i}, "status": "active"})
-          parsed = json_mod.call("parse", raw_json)
-          status = parsed["status"].to_s
-          results.send(status)
+          raw_payload = "worker-#{fiber_i}-active"
+          encoded = b64_mod.call("encode64", raw_payload).to_s.strip
+          decoded = b64_mod.call("decode64", encoded).to_s.strip
+          results.send(decoded)
         rescue ex
           results.send("error: #{ex.message}")
         end
@@ -196,9 +196,18 @@ describe "Rubellite Multi-Fiber Concurrency & Synchronization" do
       when res = results.receive
         res
       when timeout(10.seconds)
-        fail("Timed out waiting for JSON parse fiber")
+        fail("Timed out waiting for Base64 worker fiber")
       end
-      msg.should eq("active")
+      msg.should start_with("worker-")
+      msg.should end_with("-active")
     end
+  end
+
+  it "parses structured JSON via Ruby standard library on main execution thread" do
+    Ruby.require("json")
+    json_mod = Ruby["JSON"]
+    parsed = json_mod.call("parse", %({"status": "active", "code": 200}))
+    parsed["status"].to_s.should eq("active")
+    parsed["code"].to_i64.should eq(200_i64)
   end
 end

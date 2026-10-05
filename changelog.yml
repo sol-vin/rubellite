@@ -23,9 +23,13 @@ settings:
       title: "\U0001F6E0️ Chores & Tooling"
       bullet: •
 releases:
-- version: 0.1.12
+- version: 0.1.13
   date: "2026-10-04"
   status: active
+  entries: []
+- version: 0.1.12
+  date: "2026-10-04"
+  status: released
   entries:
   - type: fix
     description: register fiber machine stack boundary in Engine.synchronize to prevent
