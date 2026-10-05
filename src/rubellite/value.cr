@@ -88,6 +88,8 @@ module Rubellite
       if fixnum?
         # Fast arithmetic shift for Fixnum tagged pointer
         (@raw.to_i64 >> 1)
+      elsif ruby_nil?
+        raise TypeCastError.new("Cannot convert Ruby nil to Int64")
       else
         LibRuby.rb_num2ll(@raw)
       end
@@ -102,7 +104,11 @@ module Rubellite
     end
 
     def to_f64 : Float64
-      LibRuby.rb_num2dbl(@raw)
+      if ruby_nil?
+        raise TypeCastError.new("Cannot convert Ruby nil to Float64")
+      else
+        LibRuby.rb_num2dbl(@raw)
+      end
     end
 
     def to_f : Float64
@@ -123,6 +129,19 @@ module Rubellite
 
     def to_s : String
       String.build { |io| to_s(io) }
+    end
+
+    # Converts Ruby string (including embedded null bytes) to a native Crystal byte slice
+    def to_slice : Bytes
+      if string?
+        copy = @raw
+        ptr = LibRuby.rb_string_value_ptr(pointerof(copy))
+        len = LibRuby.rb_str_strlen(@raw).to_i32
+        return Bytes.empty if len == 0 || ptr.null?
+        Bytes.new(len) { |i| ptr[i] }
+      else
+        to_s.to_slice
+      end
     end
 
     def inspect(io : IO) : Nil
@@ -210,7 +229,9 @@ module Rubellite
       }
 
       state = 0
-      res = LibRuby.rb_protect(fn, pointerof(call_data).as(Void*), pointerof(state))
+      res = Engine.synchronize do
+        LibRuby.rb_protect(fn, pointerof(call_data).as(Void*), pointerof(state))
+      end
       if state != 0
         raise Error.from_ruby_errinfo
       end
@@ -253,7 +274,9 @@ module Rubellite
       }
 
       state = 0
-      res = LibRuby.rb_protect(fn, pointerof(call_data).as(Void*), pointerof(state))
+      res = Engine.synchronize do
+        LibRuby.rb_protect(fn, pointerof(call_data).as(Void*), pointerof(state))
+      end
       if state != 0
         raise Error.from_ruby_errinfo
       end

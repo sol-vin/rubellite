@@ -12,4 +12,7 @@ require "./value_ergonomics_spec"
 require "./bidirectional_export_spec"
 require "./proxy_advanced_spec"
 require "./stress_and_edge_cases_spec"
+require "./concurrency_multi_fiber_spec"
+require "./channel_streaming_and_pipelines_spec"
+require "./advanced_scenarios_and_interop_spec"
 

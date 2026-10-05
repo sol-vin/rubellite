@@ -49,6 +49,8 @@ lib LibRuby
   fun rb_str_new(ptr : UInt8*, len : Int64) : Value
   fun rb_str_new_cstr(ptr : UInt8*) : Value
   fun rb_string_value_cstr(ptr : Value*) : UInt8*
+  fun rb_string_value_ptr(ptr : Value*) : UInt8*
+  fun rb_str_strlen(str : Value) : Int64
 
   # Arrays
   fun rb_ary_new : Value
@@ -79,6 +81,7 @@ lib LibRuby
   fun rb_obj_classname(obj : Value) : UInt8*
   fun rb_inspect(val : Value) : Value
   fun rb_frame_this_func : Id
+  fun rb_obj_is_kind_of(obj : Value, klass : Value) : Value
 
   # Exceptions
   fun rb_errinfo : Value

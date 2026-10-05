@@ -27,9 +27,9 @@ module Rubellite
       #   </thead>
       #   <tbody>
       #     <tr>
-      #       <td><strong>ChannelBridge Architecture</strong></td>
+      #       <td><strong>ChannelBridge Architecture & Pipeline Streaming</strong></td>
       #       <td><code>.topic_01_channel_bridge</code></td>
-      #       <td>Bidirectional asynchronous communication between Crystal fibers and Ruby.</td>
+      #       <td>Bidirectional asynchronous communication between Crystal fibers and Ruby with Queue compatibility.</td>
       #     </tr>
       #   </tbody>
       # </table>
@@ -40,7 +40,7 @@ module Rubellite
       # - examples/05_channel_and_fiber_concurrency.cr
       #
       module CHANNEL_CONCURRENCY
-        # **ChannelBridge Architecture**: Bidirectional asynchronous communication between Crystal fibers and Ruby.
+        # **ChannelBridge Architecture & Pipeline Streaming**: Bidirectional asynchronous communication between Crystal fibers and Ruby with Queue compatibility.
         #
         # The `Rubellite::ChannelBridge` exposes send and receive primitives directly to Ruby scripts:
         #
@@ -56,17 +56,29 @@ module Rubellite
         #     <tr>
         #       <td>**Send**</td>
         #       <td>`channel.send(value)`</td>
-        #       <td>`Rubellite::Channel.send(channel_id, value)`</td>
+        #       <td>`queue.send(val)`, `queue.push(val)`, `queue << val`, `queue.enq(val)`</td>
         #     </tr>
         #     <tr>
         #       <td>**Receive**</td>
         #       <td>`channel.receive`</td>
-        #       <td>`Rubellite::Channel.receive(channel_id)`</td>
+        #       <td>`queue.receive`, `queue.pop`, `queue.deq`, `queue.shift`</td>
+        #     </tr>
+        #     <tr>
+        #       <td>**Safe Receive**</td>
+        #       <td>`channel.receive?`</td>
+        #       <td>`queue.receive?` (returns `nil` on close)</td>
+        #     </tr>
+        #     <tr>
+        #       <td>**Iteration**</td>
+        #       <td>`while val = chan.receive?`</td>
+        #       <td>`queue.each {</td>
+        #       <td>item</td>
+        #       <td>... }` (Enumerable streaming)</td>
         #     </tr>
         #     <tr>
         #       <td>**Close**</td>
         #       <td>`channel.close`</td>
-        #       <td>`Rubellite::Channel.close(channel_id)`</td>
+        #       <td>`queue.close`, `queue.closed?`</td>
         #     </tr>
         #   </tbody>
         # </table>
@@ -76,33 +88,30 @@ module Rubellite
         # ```crystal
         # require "rubellite"
         #
-        # Rubellite.init
+        # # Create typed Crystal channel and export to Ruby
+        # in_chan = Channel(String).new(10)
+        # Rubellite.export_channel("work_queue", in_chan)
         #
-        # # Create typed Crystal channel
-        # chan = Channel(Int32).new
-        #
-        # # Spawn a background Crystal fiber sending numbers
+        # # Producer fiber
         # spawn do
-        #   5.times do |i|
-        #     chan.send(i * 10)
-        #     Fiber.yield
+        #   ["job_alpha", "job_beta", "job_gamma"].each do |task|
+        #     in_chan.send(task)
         #   end
-        #   chan.close
+        #   in_chan.close
         # end
         #
-        # # Register channel in Rubellite bridge
-        # bridge_id = Rubellite::ChannelBridge.register(chan)
-        #
-        # # Consume from Ruby script
-        # Rubellite.eval(<<-RUBY)
-        #   while (item = Rubellite::Channel.receive(#{bridge_id}))
-        #     puts "Ruby received: \#{item}"
+        # # Ruby consumes using idiomatic Enumerable iteration
+        # Ruby.eval(<<-RUBY)
+        #   work_queue.each do |task|
+        #     puts "Ruby processing \#{task}"
         #   end
         # RUBY
         # ```
         #
         # #### Common Pitfalls & Safety Caveats
         #
+        # - **Warning**: Ruby `receive` releases the GVL via `rb_thread_call_without_gvl`, allowing other Ruby threads and Crystal fibers to progress while waiting.
+        # - **Warning**: Multi-fiber concurrent evaluations are serialized safely with re-entrant synchronization (`Ruby.synchronize`).
         # - **Warning**: Always close channels when producers terminate to avoid leaving Ruby consumer fibers hanging.
         #
         # #### Frequently Asked Questions (FAQ)

@@ -8,11 +8,18 @@ module Rubellite
   # library loading, and constant resolution.
   module Engine
     @@initialized = false
-    @@lock = Mutex.new
+    @@lock = Mutex.new(:reentrant)
 
     # Returns true if the Ruby VM has been initialized
     def self.initialized? : Bool
       @@initialized
+    end
+
+    # Re-entrant synchronization helper for multi-fiber thread safety
+    def self.synchronize(&block : -> T) : T forall T
+      @@lock.synchronize do
+        yield
+      end
     end
 
     # Initializes the Ruby VM. Safe to call multiple times (idempotent).
@@ -101,14 +108,16 @@ module Rubellite
       nil
     end
 
-    # Internal protected eval implementation
+    # Internal protected eval implementation with re-entrant synchronization
     private def self.eval_internal(code : String) : Value
-      state = 0
-      res = LibRuby.rb_eval_string_protect(code.to_unsafe, pointerof(state))
-      if state != 0
-        raise Error.from_ruby_errinfo
+      synchronize do
+        state = 0
+        res = LibRuby.rb_eval_string_protect(code.to_unsafe, pointerof(state))
+        if state != 0
+          raise Error.from_ruby_errinfo
+        end
+        Value.new(res)
       end
-      Value.new(res)
     end
   end
 
@@ -127,6 +136,10 @@ module Rubellite
 
   def self.ensure_init! : Nil
     Engine.init unless Engine.initialized?
+  end
+
+  def self.synchronize(&block : -> T) : T forall T
+    Engine.synchronize { yield }
   end
 
   def self.start(&block)

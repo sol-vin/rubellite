@@ -16,48 +16,47 @@ related_sources:
 
 sections:
   - id: topic_01_channel_bridge
-    title: ChannelBridge Architecture
-    summary: Bidirectional asynchronous communication between Crystal fibers and Ruby.
+    title: ChannelBridge Architecture & Pipeline Streaming
+    summary: Bidirectional asynchronous communication between Crystal fibers and Ruby with Queue compatibility.
     content: |
       The `Rubellite::ChannelBridge` exposes send and receive primitives directly to Ruby scripts:
 
       | Action | Crystal API | Ruby Script Equivalent |
       | :--- | :--- | :--- |
-      | **Send** | `channel.send(value)` | `Rubellite::Channel.send(channel_id, value)` |
-      | **Receive** | `channel.receive` | `Rubellite::Channel.receive(channel_id)` |
-      | **Close** | `channel.close` | `Rubellite::Channel.close(channel_id)` |
+      | **Send** | `channel.send(value)` | `queue.send(val)`, `queue.push(val)`, `queue << val`, `queue.enq(val)` |
+      | **Receive** | `channel.receive` | `queue.receive`, `queue.pop`, `queue.deq`, `queue.shift` |
+      | **Safe Receive** | `channel.receive?` | `queue.receive?` (returns `nil` on close) |
+      | **Iteration** | `while val = chan.receive?` | `queue.each { |item| ... }` (Enumerable streaming) |
+      | **Close** | `channel.close` | `queue.close`, `queue.closed?` |
 
     examples:
       - |
         ```crystal
         require "rubellite"
 
-        Rubellite.init
+        # Create typed Crystal channel and export to Ruby
+        in_chan = Channel(String).new(10)
+        Rubellite.export_channel("work_queue", in_chan)
 
-        # Create typed Crystal channel
-        chan = Channel(Int32).new
-
-        # Spawn a background Crystal fiber sending numbers
+        # Producer fiber
         spawn do
-          5.times do |i|
-            chan.send(i * 10)
-            Fiber.yield
+          ["job_alpha", "job_beta", "job_gamma"].each do |task|
+            in_chan.send(task)
           end
-          chan.close
+          in_chan.close
         end
 
-        # Register channel in Rubellite bridge
-        bridge_id = Rubellite::ChannelBridge.register(chan)
-
-        # Consume from Ruby script
-        Rubellite.eval(<<-RUBY)
-          while (item = Rubellite::Channel.receive(#{bridge_id}))
-            puts "Ruby received: \#{item}"
+        # Ruby consumes using idiomatic Enumerable iteration
+        Ruby.eval(<<-RUBY)
+          work_queue.each do |task|
+            puts "Ruby processing \#{task}"
           end
         RUBY
         ```
 
     pitfalls:
+      - "Ruby `receive` releases the GVL via `rb_thread_call_without_gvl`, allowing other Ruby threads and Crystal fibers to progress while waiting."
+      - "Multi-fiber concurrent evaluations are serialized safely with re-entrant synchronization (`Ruby.synchronize`)."
       - "Always close channels when producers terminate to avoid leaving Ruby consumer fibers hanging."
 
     faqs:

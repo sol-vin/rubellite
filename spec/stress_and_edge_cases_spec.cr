@@ -58,13 +58,9 @@ describe "Rubellite Stress, GC & Edge Cases" do
     bridge = Rubellite::ChannelBridge(Int32).new(chan)
     results = [] of Int32
 
-    while !bridge.closed?
-      begin
-        val = bridge.receive_ruby
-        results << val.to_i32
-      rescue Channel::ClosedError
-        break
-      end
+    while (val = bridge.receive_ruby)
+      break if val.ruby_nil?
+      results << val.to_i32
     end
 
     results.should eq((0..9).to_a)

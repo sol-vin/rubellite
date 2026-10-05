@@ -37,6 +37,8 @@ module Rubellite
                       val.to_f64
                     {% elsif T == Bool %}
                       val.to_bool
+                    {% elsif T == Bytes %}
+                      val.to_slice
                     {% else %}
                       val.as_crystal.as(T)
                     {% end %}
@@ -44,13 +46,20 @@ module Rubellite
       Concurrency.without_gvl do
         @channel.send(crystal_val)
       end
+    rescue Channel::ClosedError
+      # Channel closed while sending
+      nil
     end
 
     def receive_ruby : Value
       result = Concurrency.without_gvl do
-        @channel.receive
+        @channel.receive?
       end
-      result.to_ruby
+      if result.nil?
+        Value.new(LibRuby::Qnil)
+      else
+        result.to_ruby
+      end
     end
 
     def close : Nil
@@ -99,6 +108,8 @@ module Rubellite
       Engine.eval(<<-RUBY)
         module Crystal
           class Channel
+            include Enumerable
+
             attr_reader :bridge_id
 
             def initialize(capacity = 0)
@@ -120,6 +131,18 @@ module Rubellite
               Channel._bridge_receive(@bridge_id)
             end
 
+            def receive?
+              Channel._bridge_receive(@bridge_id)
+            end
+
+            # Ruby Queue compatibility aliases
+            alias_method :push, :send
+            alias_method :<<, :send
+            alias_method :enq, :send
+            alias_method :pop, :receive
+            alias_method :deq, :receive
+            alias_method :shift, :receive
+
             def close
               Channel._bridge_close(@bridge_id)
               self
@@ -127,6 +150,16 @@ module Rubellite
 
             def closed?
               Channel._bridge_closed(@bridge_id)
+            end
+
+            # Streams channel values until the channel is closed and drained
+            def each
+              return to_enum(:each) unless block_given?
+              loop do
+                val = receive?
+                break if val.nil? && closed?
+                yield val
+              end
             end
           end
         end

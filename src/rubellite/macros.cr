@@ -53,7 +53,24 @@ module Rubellite
       c_name_ptr = LibRuby.rb_obj_classname(self_val)
       class_name = c_name_ptr ? String.new(c_name_ptr) : ""
 
-      handler = @@lock.synchronize { @@instance_methods[{class_name, method_name}]? }
+      handler = @@lock.synchronize do
+        if h = @@instance_methods[{class_name, method_name}]?
+          h
+        else
+          # Fallback: check if self_val inherits from any registered class defining this method
+          found = nil
+          @@instance_methods.each do |(k_name, m_name), blk|
+            if m_name == method_name
+              k_val = LibRuby.rb_eval_string(k_name)
+              if k_val != LibRuby::Qnil && LibRuby.rb_obj_is_kind_of(self_val, k_val) == LibRuby::Qtrue
+                found = blk
+                break
+              end
+            end
+          end
+          found
+        end
+      end
       return LibRuby::Qnil unless handler
 
       args = Array(Value).new(argc)
