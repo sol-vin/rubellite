@@ -10,6 +10,8 @@ module Rubellite
         primary_branch = detect_primary_branch
         tag_prefix = "ruby-"
 
+        remaining = [] of String
+
         parser = OptionParser.new do |opts|
           opts.banner = "Usage: crystal run scripts/ruby_version_branch.cr -- <ruby_version> [options]"
           opts.on("-p", "--push", "Push branch and tag to remote origin") { push = true }
@@ -20,9 +22,10 @@ module Rubellite
             puts opts
             exit 0
           end
+          opts.unknown_args { |raw| remaining = raw }
         end
 
-        remaining = parser.parse(args)
+        parser.parse(args)
         if remaining.empty?
           STDERR.puts "\e[31mError:\e[0m Missing Ruby version (e.g. 4.0.5, 4.0.1, 3.4.0)"
           STDERR.puts "Usage: crystal run scripts/ruby_version_branch.cr -- <ruby_version> [options]"

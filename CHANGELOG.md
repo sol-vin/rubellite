@@ -1,4 +1,6 @@
 # CARBON CHANGELOG
+## [0.1.8] - 2026-10-04
+---
 ## [0.1.7] - 2026-10-04
 ### ✨ Features & Improvements
 - ✦ initial release of Rubellite - Crystal <-> Ruby interop bindings ([`fe82e6e`](https://github.com/sol-vin/rubellite/commit/fe82e6e))
