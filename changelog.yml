@@ -23,9 +23,19 @@ settings:
       title: "\U0001F6E0️ Chores & Tooling"
       bullet: •
 releases:
-- version: 0.1.15
+- version: 0.1.16
   date: "2026-10-04"
   status: active
+  entries:
+  - type: fix
+    description: Pre-query Ruby standard library paths before C-API initialization
+      to ensure reliable $LOAD_PATH bootstrapping
+  - type: perf
+    description: Accelerate GC churn stress spec by executing allocation loop natively
+      in Ruby bytecode
+- version: 0.1.15
+  date: "2026-10-04"
+  status: released
   entries:
   - type: fix
     description: Eliminate subprocess fork in Engine.init by bootstrapping RbConfig

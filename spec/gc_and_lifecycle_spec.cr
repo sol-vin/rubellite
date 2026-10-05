@@ -42,12 +42,12 @@ describe "Rubellite GC Invariants & Object Lifecycles" do
 
   it "survives intensive allocation churn under continuous explicit GC triggers" do
     # Rapidly create 5,000 Ruby objects and verify stability
-    5000.times do |i|
-      val = Ruby.eval("[#{i}, 'item_#{i}']")
-      if i % 1000 == 0
-        Rubellite::GC.start_ruby_gc
+    Ruby.eval(<<-RUBY)
+      5000.times do |i|
+        val = [i, "item_\#{i}"]
+        GC.start if i % 1000 == 0
       end
-    end
+    RUBY
 
     final_val = Ruby.eval("'gc_stress_ok'").to_s
     final_val.should eq("gc_stress_ok")

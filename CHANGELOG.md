@@ -1,4 +1,12 @@
 # CARBON CHANGELOG
+## [0.1.16] - 2026-10-04
+### 🐛 Bug Fixes
+- ✓ Pre-query Ruby standard library paths before C-API initialization to ensure reliable $LOAD_PATH bootstrapping
+
+### ⚡ Performance Optimizations
+- 🚀 Accelerate GC churn stress spec by executing allocation loop natively in Ruby bytecode
+
+---
 ## [0.1.15] - 2026-10-04
 ### 🐛 Bug Fixes
 - ✓ Eliminate subprocess fork in Engine.init by bootstrapping RbConfig standard library load paths directly in memory

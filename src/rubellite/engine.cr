@@ -31,6 +31,14 @@ module Rubellite
       @@lock.synchronize do
         return if @@initialized
 
+        # Pre-query Ruby standard library paths before C-API VM initialization
+        stdlib_paths = begin
+          raw = `ruby -e "require 'rbconfig'; puts [RbConfig::CONFIG['rubylibdir'], RbConfig::CONFIG['rubyarchdir']].compact.join(';;;')"` rescue ""
+          raw.strip.split(";;;").reject(&.empty?)
+        rescue
+          [] of String
+        end
+
         # 1. Initialize Ruby stack boundary from the current stack frame
         stack_bottom = 0_u64
         LibRuby.ruby_init_stack(pointerof(stack_bottom))
@@ -54,17 +62,11 @@ module Rubellite
         node = LibRuby.ruby_options(3, opts.to_unsafe)
         LibRuby.ruby_exec_node(node) unless node.null?
 
-        # 5. Bootstrap load paths with active Ruby standard library directories in-memory
-        eval_internal(<<-RUBY)
-          begin
-            require 'rbconfig'
-            [RbConfig::CONFIG['rubylibdir'], RbConfig::CONFIG['rubyarchdir']].compact.each do |p|
-              clean_p = p.tr('\\\\', '/')
-              $LOAD_PATH.unshift(clean_p) unless $LOAD_PATH.include?(clean_p)
-            end
-          rescue LoadError
-          end
-        RUBY
+        # 5. Bootstrap load paths with active Ruby standard library directories
+        stdlib_paths.each do |p|
+          escaped = p.gsub('\\', '/')
+          eval_internal("$LOAD_PATH.unshift('#{escaped}') unless $LOAD_PATH.include?('#{escaped}')")
+        end
 
         @@initialized = true
       end
