@@ -11,8 +11,13 @@ require "./rubellite/spinel"
 require "./rubellite/diagnostics/r2"
 require "./rubellite/ext/extension"
 
+require "./rubellite/version"
+
+{% unless flag?(:release) %}
+  require "./rubellite/docs"
+{% end %}
+
 # Rubellite: High-performance Crystal <-> Ruby interop bindings,
 # Spinel AOT compiler fast-path, Channel concurrency, and radare2 diagnostics.
 module Rubellite
-  VERSION = "0.1.0"
 end

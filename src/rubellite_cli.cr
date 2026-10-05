@@ -8,11 +8,40 @@ module Rubellite
       app.description("Rubellite: High-performance Crystal <-> Ruby interop bindings and Spinel AOT framework")
 
       # -----------------------------------------------------------------------
+      # Version Command
+      # -----------------------------------------------------------------------
+      app.command("version", "Display Rubellite version and target Ruby version") do |cmd|
+        cmd.run do |_ctx|
+          puts "Rubellite: #{Rubellite::VERSION}"
+          target_ruby = if File.exists?("ruby-version.yml")
+                          File.read_lines("ruby-version.yml")
+                            .find(&.strip.starts_with?("version:"))
+                            .try(&.split(":", 2)[1]?.try(&.strip.gsub(/["']/, ""))) || "4.x"
+                        else
+                          "4.x"
+                        end
+          puts "Ruby Compatibility Target: #{target_ruby}"
+          0
+        end
+      end
+
+      # -----------------------------------------------------------------------
       # Doctor Command
       # -----------------------------------------------------------------------
       app.command("doctor", "Inspect and diagnose the Ruby, Crystal, and r2 environment") do |cmd|
         cmd.run do |_ctx|
           puts "\e[1;35m[Rubellite Doctor]\e[0m Inspecting toolchain and binary ABI compatibility...\n\n"
+
+          # 0. Versions
+          puts "  \e[32m✓\e[0m Rubellite Version: #{Rubellite::VERSION}"
+          target_ruby = if File.exists?("ruby-version.yml")
+                          File.read_lines("ruby-version.yml")
+                            .find(&.strip.starts_with?("version:"))
+                            .try(&.split(":", 2)[1]?.try(&.strip.gsub(/["']/, ""))) || "4.x"
+                        else
+                          "4.x"
+                        end
+          puts "  \e[32m✓\e[0m Ruby Target Ver  : #{target_ruby}"
 
           # 1. Crystal
           puts "  \e[32m✓\e[0m Crystal Compiler : #{Crystal::DESCRIPTION.lines.first}"

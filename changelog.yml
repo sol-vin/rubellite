@@ -1,0 +1,112 @@
+---
+settings:
+  title: CARBON CHANGELOG
+  output_file: CHANGELOG.md
+  auto_link_github: true
+  categories:
+    breaking:
+      title: "\U0001F4A5 Breaking Changes"
+      bullet: ▲
+    features:
+      title: ✨ Features & Improvements
+      bullet: ✦
+    fixes:
+      title: "\U0001F41B Bug Fixes"
+      bullet: ✓
+    perf:
+      title: ⚡ Performance Optimizations
+      bullet: "\U0001F680"
+    docs:
+      title: "\U0001F4DA Documentation"
+      bullet: "\U0001F4D6"
+    maintenance:
+      title: "\U0001F6E0️ Chores & Tooling"
+      bullet: •
+releases:
+- version: 0.1.7
+  date: "2026-10-04"
+  status: active
+  entries:
+  - type: feat
+    description: initial release of Rubellite - Crystal <-> Ruby interop bindings
+    bullet: ✦
+    hash: fe82e6e
+    author: Ian Rash
+  - type: fix
+    description: fix dependencies, multi-OS dynamic loader, and Windows DLL path resolution
+    bullet: ✓
+    badge: '[CI]'
+    hash: e8a9a40
+    author: Ian Rash
+  - type: fix
+    description: add rpath and LD_LIBRARY_PATH, use ruby_script for , and bootstrap
+      stdlib load path
+    bullet: ✓
+    badge: '[CI]'
+    hash: e49c5fc
+    author: Ian Rash
+  - type: fix
+    description: normalize Mach-O underscore prefix, add symbol table fallback, and
+      find r2 binary path
+    bullet: ✓
+    badge: '[R2]'
+    hash: "2682017"
+    author: Ian Rash
+  - type: fix
+    description: initialize encodings via ruby_options, pass relocs flags to r2, and
+      test cgi standard library
+    bullet: ✓
+    badge: '[ENGINE]'
+    hash: "59e0268"
+    author: Ian Rash
+  - type: fix
+    description: streamline matrix to multi-OS tier and eliminate apt ruby package
+      conflict
+    bullet: ✓
+    badge: '[CI]'
+    hash: c92798c
+    author: Ian Rash
+- version: 0.1.6
+  date: "2026-10-04"
+  status: released
+  summary: Initial release
+  entries:
+  - type: feat
+    description: initial release of Rubellite - Crystal <-> Ruby interop bindings
+    bullet: ✦
+    hash: fe82e6e
+    author: Ian Rash
+  - type: fix
+    description: fix dependencies, multi-OS dynamic loader, and Windows DLL path resolution
+    bullet: ✓
+    badge: '[CI]'
+    hash: e8a9a40
+    author: Ian Rash
+  - type: fix
+    description: add rpath and LD_LIBRARY_PATH, use ruby_script for , and bootstrap
+      stdlib load path
+    bullet: ✓
+    badge: '[CI]'
+    hash: e49c5fc
+    author: Ian Rash
+  - type: fix
+    description: normalize Mach-O underscore prefix, add symbol table fallback, and
+      find r2 binary path
+    bullet: ✓
+    badge: '[R2]'
+    hash: "2682017"
+    author: Ian Rash
+  - type: fix
+    description: initialize encodings via ruby_options, pass relocs flags to r2, and
+      test cgi standard library
+    bullet: ✓
+    badge: '[ENGINE]'
+    hash: "59e0268"
+    author: Ian Rash
+  - type: fix
+    description: streamline matrix to multi-OS tier and eliminate apt ruby package
+      conflict
+    bullet: ✓
+    badge: '[CI]'
+    hash: c92798c
+    author: Ian Rash

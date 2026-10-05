@@ -1,0 +1,51 @@
+id: RUBY_VERSION_TRACKING
+title: Upstream Ruby Compatibility Branches & Dual Versioning
+summary: Managing 1-commit branches off main and tags to track specific Ruby releases.
+track: 03_versioning_and_releases
+overview: |
+  Following the architectural convention established by the **Lapis** project, Rubellite
+  employs a **dual versioning system**:
+  
+  1. **Primary Branch Releases (`rubellite-X.Y.Z`)**: Major, minor, and patch releases
+     of the Rubellite shard cut on the primary development branch (`main`).
+  2. **Ruby Tracking Branches (`X.Y.Z`) & Tags (`ruby-X.Y.Z`)**: Dedicated single-commit branches
+     forked directly from `main` that configure Rubellite for a specific upstream Ruby version
+     (e.g. `4.0.5`, `3.4.0`) via `ruby-version.yml`.
+
+related_sources:
+  - "ruby-version.yml"
+  - "scripts/ruby_version_branch.cr"
+  - "shard.yml"
+
+sections:
+  - id: topic_01_dual_versioning_workflow
+    title: Branch & Tag Structure
+    summary: How upstream Ruby releases are tracked without cluttering primary branch history.
+    content: |
+      | Concept | Identifier | Description |
+      | :--- | :--- | :--- |
+      | **Primary Branch** | `main` | Ongoing feature and shard development |
+      | **Shard Release Tag** | `rubellite-0.1.6` | Tagged on `main` for shard milestone releases |
+      | **Ruby Branch** | `4.0.5` | 1-commit branch off `main` for Ruby 4.0.5 |
+      | **Ruby Release Tag** | `ruby-4.0.5` | Annotated tag on the Ruby compatibility branch |
+
+      Each Ruby tracking branch contains a single commit incorporating:
+      - `ruby-version.yml`: Declares target Ruby version, ABI version, and flags.
+      - Any version-specific C API workarounds or compiler configurations.
+
+    examples:
+      - |
+        ```bash
+        # Create a Ruby 4.0.5 tracking branch and tag using the automated helper
+        crystal run scripts/ruby_version_branch.cr -- 4.0.5
+
+        # Check git branch and tag graph
+        git log --graph --oneline --all
+        ```
+
+    pitfalls:
+      - "Never merge a Ruby version branch back into main. Ruby version branches are terminal single-commit branches off main."
+
+    faqs:
+      - q: "Why use separate 1-commit branches instead of tags alone?"
+        a: "Branches allow users and CI matrices to target a specific Ruby version (`branch: 4.0.5`) in their shard.yml manifests."

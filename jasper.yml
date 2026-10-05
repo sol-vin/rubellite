@@ -1,0 +1,24 @@
+namespace: "Rubellite::Docs"
+source_dir: "docs_src"
+output_dir: "src/rubellite/docs"
+master_file: "src/rubellite/docs.cr"
+
+features:
+  release_guard: true
+  naming_style: "prefixed"
+  prefix_format: "topic_%02d_"
+  table_auto_html: true
+  protect_summary: true
+  summary_table: true
+  master_index: true
+  aliases:
+    - "Docs"
+    - "Rubellite::Documentation"
+  quick_start:
+    title: "Rubellite Commands"
+    commands:
+      - "shards install"
+      - "crystal spec"
+      - "bin/jasper build"
+      - "crystal docs"
+  search_index_file: "docs/search_index.json"

@@ -1,0 +1,18 @@
+---
+settings:
+  target_file: README.md
+  tag: carbon:badges
+  style: flat
+  layout: inline
+badges:
+- type: ci
+- type: docs
+- type: version
+- type: crystal
+- type: custom
+  label: ruby
+  message: ">= 3.0"
+  color: CC342D
+  logo: ruby
+  link: https://www.ruby-lang.org
+- type: license

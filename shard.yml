@@ -1,5 +1,5 @@
 name: rubellite
-version: 0.1.0
+version: 0.1.7
 
 authors:
   - sol-vin
@@ -20,6 +20,18 @@ dependencies:
     github: sol-vin/opal
     branch: main
 
+development_dependencies:
+  carbon:
+    github: sol-vin/carbon
+    branch: main
+  jasper:
+    github: sol-vin/jasper
+    branch: main
+
 targets:
   rubellite:
     main: src/rubellite_cli.cr
+  carbon:
+    main: lib/carbon/src/carbon/cli.cr
+  jasper:
+    main: lib/jasper/src/jasper_cli.cr

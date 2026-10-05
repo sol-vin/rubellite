@@ -1,0 +1,65 @@
+id: CHANNEL_CONCURRENCY
+title: Channel Concurrency & Fiber Interop
+summary: Bridging Crystal CSP channels with Ruby scripts and managing the Global VM Lock (GVL).
+track: 02_advanced_features
+overview: |
+  Crystal utilizes lightweight Fibers with non-blocking event loops, while CRuby relies on
+  native OS threads constrained by the Global VM Lock (GVL / GIL).
+
+  Rubellite builds a thread-safe bridge (`Rubellite::ChannelBridge`) enabling Crystal fibers
+  to stream values directly into Ruby scripts and vice versa without deadlocking the host process.
+
+related_sources:
+  - "src/rubellite/channel.cr"
+  - "src/rubellite/concurrency.cr"
+  - "examples/05_channel_and_fiber_concurrency.cr"
+
+sections:
+  - id: topic_01_channel_bridge
+    title: ChannelBridge Architecture
+    summary: Bidirectional asynchronous communication between Crystal fibers and Ruby.
+    content: |
+      The `Rubellite::ChannelBridge` exposes send and receive primitives directly to Ruby scripts:
+
+      | Action | Crystal API | Ruby Script Equivalent |
+      | :--- | :--- | :--- |
+      | **Send** | `channel.send(value)` | `Rubellite::Channel.send(channel_id, value)` |
+      | **Receive** | `channel.receive` | `Rubellite::Channel.receive(channel_id)` |
+      | **Close** | `channel.close` | `Rubellite::Channel.close(channel_id)` |
+
+    examples:
+      - |
+        ```crystal
+        require "rubellite"
+
+        Rubellite.init
+
+        # Create typed Crystal channel
+        chan = Channel(Int32).new
+
+        # Spawn a background Crystal fiber sending numbers
+        spawn do
+          5.times do |i|
+            chan.send(i * 10)
+            Fiber.yield
+          end
+          chan.close
+        end
+
+        # Register channel in Rubellite bridge
+        bridge_id = Rubellite::ChannelBridge.register(chan)
+
+        # Consume from Ruby script
+        Rubellite.eval(<<-RUBY)
+          while (item = Rubellite::Channel.receive(#{bridge_id}))
+            puts "Ruby received: \#{item}"
+          end
+        RUBY
+        ```
+
+    pitfalls:
+      - "Always close channels when producers terminate to avoid leaving Ruby consumer fibers hanging."
+
+    faqs:
+      - q: "Is Channel communication thread-safe?"
+        a: "Yes, Rubellite synchronizes channel access using Crystal spinlocks and mutexes around Ruby GVL transitions."

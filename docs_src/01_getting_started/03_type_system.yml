@@ -1,0 +1,53 @@
+id: TYPE_SYSTEM
+title: Type Conversions & Value Marshaling
+summary: Bidirectional marshaling between Crystal native types and CRuby VALUE handles.
+track: 01_getting_started
+overview: |
+  Rubellite provides an automatic, zero-copy type mapping system for primitive scalars,
+  alongside deep marshaling for collections like Arrays, Hashes, Tuples, and NamedTuples.
+
+related_sources:
+  - "src/rubellite/convert.cr"
+  - "src/rubellite/value.cr"
+  - "examples/02_type_conversions_and_hash.cr"
+
+sections:
+  - id: topic_01_scalar_mapping
+    title: Scalar Primitives & Flonum Encoding
+    summary: Unboxed 64-bit integer, floating point, boolean, and nil representation.
+    content: |
+      Rubellite exploits CRuby's 64-bit tagged pointer representations (USE_FLONUM):
+
+      | Crystal Type | Ruby Representation | Tagging Mechanism |
+      | :--- | :--- | :--- |
+      | `Nil` | `Qnil` (0x04) | Immediate constant |
+      | `Bool` (`true` / `false`) | `Qtrue` (0x14) / `Qfalse` (0x00) | Immediate constant |
+      | `Int` (e.g. `Int32`, `Int64`) | `FIXNUM` | LSB tag `0x01` (unboxed 63-bit int) |
+      | `Float64` | `FLONUM` | Bits tagged `0x02` (unboxed double) |
+      | `String` | `T_STRING` | Heap allocated with UTF-8 encoding |
+      | `Symbol` | `ID` / `T_SYMBOL` | Interned symbol ID |
+
+    examples:
+      - |
+        ```crystal
+        require "rubellite"
+
+        Rubellite.init
+
+        # Convert Crystal scalars to Ruby values
+        val_int = 42.to_ruby
+        val_str = "Hello Crystal".to_ruby
+        val_arr = [1, 2, 3].to_ruby
+
+        # Unpack Ruby values back into Crystal types
+        puts val_int.as_crystal # => 42_i64
+        puts val_str.as_crystal # => "Hello Crystal"
+        puts val_arr.as_crystal # => [1_i64, 2_i64, 3_i64]
+        ```
+
+    pitfalls:
+      - "Large integers exceeding 63 bits are converted to Ruby Bignum automatically, which incurs heap allocation."
+
+    faqs:
+      - q: "Can I convert Crystal NamedTuples to Ruby?"
+        a: "Yes, NamedTuples are converted into Ruby Hashes with Symbol keys."

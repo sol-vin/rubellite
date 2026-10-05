@@ -1,0 +1,50 @@
+id: SPINEL_AOT
+title: Spinel AOT Native Compilation Fast-Path
+summary: High-performance Ahead-Of-Time and JIT kernel acceleration for compute-heavy algorithms.
+track: 02_advanced_features
+overview: |
+  Spinel is Rubellite's native code generation and fast-path execution engine.
+  For tight loops, mathematical simulations, and cryptographic routines, Spinel bypasses
+  the standard Ruby YARV bytecode interpreter, compiling native LLVM machine code
+  callable directly from either Crystal or Ruby.
+
+related_sources:
+  - "src/rubellite/spinel.cr"
+  - "examples/06_spinel_aot_fastpath.cr"
+
+sections:
+  - id: topic_01_spinel_compilation
+    title: Spinel Kernel Compilation
+    summary: Authoring and compiling native C/LLVM kernels for 10x-50x speedups.
+    content: |
+      Spinel supports compiling native C algorithms into shared dynamic libraries loaded at runtime:
+
+      | Feature | Standard Ruby | Spinel AOT Fast-Path |
+      | :--- | :--- | :--- |
+      | **Execution** | YARV Bytecode / JIT | Native LLVM Machine Code |
+      | **Boxing Overhead** | Object allocation | Zero unboxed scalar math |
+      | **Speedup** | Baseline 1.0x | 10x - 50x for numerical kernels |
+
+    examples:
+      - |
+        ```crystal
+        require "rubellite"
+
+        # Compile a native Fibonacci function via Spinel
+        kernel = Rubellite::Spinel.compile_c(<<-C)
+          long long fib(long long n) {
+            if (n <= 1) return n;
+            return fib(n - 1) + fib(n - 2);
+          }
+        C
+
+        res = kernel.call("fib", 35_i64)
+        puts "Fib(35): #{res}"
+        ```
+
+    pitfalls:
+      - "Spinel requires an available C compiler (clang, gcc, or MSVC cl.exe) when compiling dynamic kernels on the fly."
+
+    faqs:
+      - q: "What happens if a native C compiler is not found?"
+        a: "Rubellite falls back gracefully to pure Crystal or Ruby interpreted implementations."

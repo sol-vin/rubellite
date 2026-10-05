@@ -2,13 +2,17 @@
 
 # 💎 Rubellite
 
-**Next-Generation Bidirectional Crystal $\leftrightarrow$ Ruby Interop, Spinel AOT Compiler, Concurrency Channels & radare2 Diagnostics**
-
+<!-- carbon:badges -->
 [![CI](https://github.com/sol-vin/rubellite/actions/workflows/ci.yml/badge.svg)](https://github.com/sol-vin/rubellite/actions/workflows/ci.yml)
-[![Docs](https://github.com/sol-vin/rubellite/actions/workflows/docs.yml/badge.svg)](https://sol-vin.github.io/rubellite/)
-[![Crystal](https://img.shields.io/badge/crystal-%3E%3D1.10.0-black.svg?logo=crystal)](https://crystal-lang.org)
-[![Ruby](https://img.shields.io/badge/ruby-%3E%3D3.0-CC342D.svg?logo=ruby)](https://www.ruby-lang.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://sol-vin.github.io/rubellite/)
+[![Version](https://img.shields.io/badge/version-0.1.7-blue.svg)](https://github.com/sol-vin/rubellite/releases)
+[![Crystal](https://img.shields.io/badge/crystal-%3E%3D%201.20.0-black.svg)](https://crystal-lang.org)
+[![ruby](https://img.shields.io/badge/ruby-%3E%3D%203.0-CC342D.svg?logo=ruby)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<!-- /carbon:badges -->
+
+
+**Next-Generation Bidirectional Crystal $\leftrightarrow$ Ruby Interop, Spinel AOT Compiler, Concurrency Channels & radare2 Diagnostics**
 
 </div>
 

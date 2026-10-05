@@ -1,0 +1,53 @@
+id: CARBON_VERSIONING
+title: Internal Versioning & Release Engineering with Carbon
+summary: Automated commit-based versioning, zero-friction Git hooks, changelogs, and badge management.
+track: 03_versioning_and_releases
+overview: |
+  Rubellite adopts **Carbon** for automated, monotonic version management following the
+  Lapis versioning standard: `<major>.<minor>.<commit_number>`.
+
+  Every Git commit automatically bumps the commit number across project manifests,
+  while non-destructive changelog management (`changelog.yml` -> `CHANGELOG.md`) tracks features,
+  fixes, and breaking milestones.
+
+related_sources:
+  - "shard.yml"
+  - "badges.yml"
+  - "changelog.yml"
+  - "CHANGELOG.md"
+  - "src/rubellite/version.cr"
+
+sections:
+  - id: topic_01_version_lifecycle
+    title: Carbon Version Lifecycle & CLI Commands
+    summary: Managing version bumps, synchronization, and pre-commit hooks.
+    content: |
+      Carbon automates the entire release pipeline:
+
+      | Command | Description |
+      | :--- | :--- |
+      | `carbon check` | Verifies whether `shard.yml` matches Git commit count |
+      | `carbon bump` | Manually or via hook advances the commit index |
+      | `carbon bump --minor` | Increments minor version for new feature milestones |
+      | `carbon changelog` | Syncs new Git commits into `changelog.yml` and compiles `CHANGELOG.md` |
+      | `carbon badges` | Renders dynamic badges into `README.md` |
+      | `carbon doctor` | Audits repository health, hooks, and changelogs |
+
+    examples:
+      - |
+        ```bash
+        # Audit repository health and version alignment
+        bin/carbon check
+        bin/carbon doctor
+
+        # Update changelog and badges
+        bin/carbon changelog
+        bin/carbon badges --render
+        ```
+
+    pitfalls:
+      - "Never manually edit the commit counter in shard.yml; let Carbon hooks maintain it."
+
+    faqs:
+      - q: "How do Git pre-commit hooks work?"
+        a: "The hook executes `carbon bump --hook`, which idempotently updates and stages shard.yml and version.cr."

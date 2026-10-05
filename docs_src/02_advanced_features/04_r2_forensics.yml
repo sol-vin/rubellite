@@ -1,0 +1,46 @@
+id: R2_FORENSICS
+title: Binary Forensics & ABI Auditing via Radare2
+summary: Static and dynamic binary analysis of libruby exports, symbols, and ABI compatibility.
+track: 02_advanced_features
+overview: |
+  To prevent subtle runtime segmentation faults caused by mismatched Ruby versions or
+  missing exported symbols, Rubellite integrates directly with radare2 (`r2`).
+
+  Through `Rubellite::Diagnostics::R2`, developers can inspect shared libraries,
+  disassemble exported functions, and verify ABI compatibility automatically.
+
+related_sources:
+  - "src/rubellite/diagnostics/r2.cr"
+  - "examples/07_r2_binary_forensics.cr"
+  - "src/rubellite_cli.cr"
+
+sections:
+  - id: topic_01_r2_auditing
+    title: Automated ABI & Symbol Auditing
+    summary: Using radare2 to verify Ruby binary exports and detect symbol collisions.
+    content: |
+      Rubellite's doctor suite performs automated binary forensics:
+
+      | Check | Command | Details |
+      | :--- | :--- | :--- |
+      | **Environment Audit** | `rubellite doctor` | Audits Ruby binary, r2 engine, and exported symbols |
+      | **ABI Compatibility** | `r2.audit_environment` | Confirms all required C-API entry points exist |
+      | **Disassembly** | `r2.disassemble_symbol(sym)` | Disassembles MIPS, x86_64, or ARM64 routines |
+
+    examples:
+      - |
+        ```crystal
+        require "rubellite"
+
+        report = Rubellite::Diagnostics::R2.audit_environment
+        puts "Ruby Binary Path: #{report.ruby_dll_path}"
+        puts "Total Symbols Found: #{report.total_symbols_found}"
+        puts "ABI Compatible: #{report.abi_compatible?}"
+        ```
+
+    pitfalls:
+      - "Ensure radare2 (`r2`) is installed in PATH for detailed symbol disassembly output."
+
+    faqs:
+      - q: "Can Rubellite run if radare2 is not installed?"
+        a: "Yes, radare2 is utilized for forensics and diagnostics; core evaluation functions normally."
