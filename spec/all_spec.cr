@@ -15,4 +15,8 @@ require "./stress_and_edge_cases_spec"
 require "./concurrency_multi_fiber_spec"
 require "./channel_streaming_and_pipelines_spec"
 require "./advanced_scenarios_and_interop_spec"
+require "./types_extended_spec"
+require "./gc_and_lifecycle_spec"
+require "./concurrency_gvl_spec"
+require "./kwargs_and_block_yield_spec"
 

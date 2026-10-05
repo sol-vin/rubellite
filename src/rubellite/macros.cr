@@ -37,9 +37,13 @@ module Rubellite
       begin
         res = handler.call(args)
         res.raw
+      rescue ex : RubyRaiseException
+        err_klass = Engine[ex.ruby_class]? || Engine["RuntimeError"]
+        LibRuby.rb_raise(err_klass.raw, "%s".to_unsafe, (ex.message || "").to_unsafe)
+        LibRuby::Qnil
       rescue ex
         err_klass = LibRuby.rb_eval_string("RuntimeError")
-        LibRuby.rb_raise(err_klass, ex.message || "Crystal callback error")
+        LibRuby.rb_raise(err_klass, "%s".to_unsafe, (ex.message || "Crystal callback error").to_unsafe)
         LibRuby::Qnil
       end
     end
@@ -79,9 +83,13 @@ module Rubellite
       begin
         res = handler.call(args)
         res.raw
+      rescue ex : RubyRaiseException
+        err_klass = Engine[ex.ruby_class]? || Engine["RuntimeError"]
+        LibRuby.rb_raise(err_klass.raw, "%s".to_unsafe, (ex.message || "").to_unsafe)
+        LibRuby::Qnil
       rescue ex
         err_klass = LibRuby.rb_eval_string("RuntimeError")
-        LibRuby.rb_raise(err_klass, ex.message || "Crystal callback error")
+        LibRuby.rb_raise(err_klass, "%s".to_unsafe, (ex.message || "Crystal callback error").to_unsafe)
         LibRuby::Qnil
       end
     end

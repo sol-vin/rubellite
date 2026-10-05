@@ -74,6 +74,22 @@ struct Set(T)
   end
 end
 
+struct Time
+  def to_ruby : Rubellite::Value
+    Rubellite.ensure_init!
+    time_mod = Rubellite["Time"]
+    time_mod.call("at", self.to_unix, (self.nanosecond // 1000).to_i64)
+  end
+end
+
+struct Range(B, E)
+  def to_ruby : Rubellite::Value
+    Rubellite.ensure_init!
+    range_mod = Rubellite["Range"]
+    range_mod.call("new", self.begin.to_ruby, self.end.to_ruby, self.exclusive?.to_ruby)
+  end
+end
+
 class Hash(K, V)
   def to_ruby : Rubellite::Value
     Rubellite.ensure_init!

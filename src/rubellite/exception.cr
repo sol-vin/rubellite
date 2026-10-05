@@ -59,4 +59,20 @@ module Rubellite
       Error.new(message, class_name, backtrace)
     end
   end
+
+  # Exception used to signal raising a specific native Ruby exception class from Crystal
+  class RubyRaiseException < Exception
+    getter ruby_class : String
+
+    def initialize(@ruby_class : String, message : String)
+      super(message)
+    end
+  end
+
+  # Raises a Ruby exception of the specified class with a custom message.
+  # When invoked from Crystal callbacks, this cleanly unwinds to the dispatcher boundary
+  # where the native Ruby exception is raised in the Ruby VM.
+  def self.raise_ruby(klass_name : String, message : String) : NoReturn
+    raise RubyRaiseException.new(klass_name, message)
+  end
 end

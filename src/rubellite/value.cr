@@ -68,6 +68,30 @@ module Rubellite
       class_name == "Proc"
     end
 
+    def time? : Bool
+      class_name == "Time"
+    end
+
+    def range? : Bool
+      class_name == "Range"
+    end
+
+    def regex? : Bool
+      class_name == "Regexp"
+    end
+
+    def set? : Bool
+      class_name == "Set"
+    end
+
+    def rational? : Bool
+      class_name == "Rational"
+    end
+
+    def complex? : Bool
+      class_name == "Complex"
+    end
+
     def class_name : String
       return "NilClass" if ruby_nil?
       return "TrueClass" if true?
@@ -86,12 +110,23 @@ module Rubellite
 
     def to_i64 : Int64
       if fixnum?
-        # Fast arithmetic shift for Fixnum tagged pointer
-        (@raw.to_i64 >> 1)
+        # Fast arithmetic shift for Fixnum tagged pointer (use ! to allow signed negative fixnums)
+        (@raw.to_i64! >> 1)
       elsif ruby_nil?
         raise TypeCastError.new("Cannot convert Ruby nil to Int64")
-      else
+      elsif flonum? || class_name == "Float"
+        LibRuby.rb_num2dbl(@raw).to_i64
+      elsif class_name == "Integer"
         LibRuby.rb_num2ll(@raw)
+      elsif string?
+        to_s.to_i64
+      else
+        res = call("to_i")
+        if res.fixnum?
+          res.raw.to_i64! >> 1
+        else
+          LibRuby.rb_num2ll(res.raw)
+        end
       end
     end
 
@@ -106,8 +141,13 @@ module Rubellite
     def to_f64 : Float64
       if ruby_nil?
         raise TypeCastError.new("Cannot convert Ruby nil to Float64")
-      else
+      elsif flonum? || fixnum? || class_name == "Float" || class_name == "Integer"
         LibRuby.rb_num2dbl(@raw)
+      elsif string?
+        to_s.to_f64
+      else
+        res = call("to_f")
+        LibRuby.rb_num2dbl(res.raw)
       end
     end
 
@@ -169,9 +209,13 @@ module Rubellite
     end
 
     def to_a : Array(Value)
-      len = call("length").to_i64
-      Array(Value).new(len.to_i32) do |i|
-        Value.new(LibRuby.rb_ary_entry(@raw, i))
+      if array?
+        len = call("length").to_i64
+        Array(Value).new(len.to_i32) do |i|
+          Value.new(LibRuby.rb_ary_entry(@raw, i))
+        end
+      else
+        call("to_a").to_a
       end
     end
 
@@ -182,6 +226,28 @@ module Rubellite
         result[k] = self[k]
       end
       result
+    end
+
+    def to_time : Time
+      if ruby_nil?
+        raise TypeCastError.new("Cannot convert Ruby nil to Time")
+      end
+      sec = call("to_i").to_i64
+      usec = call("usec").to_i64
+      Time.unix(sec) + usec.microseconds
+    end
+
+    def to_range : Range(Int64, Int64)?
+      return nil unless range?
+      begin_val = call("begin")
+      end_val = call("end")
+      return nil if begin_val.ruby_nil? || end_val.ruby_nil?
+      exclusive = call("exclude_end?").to_bool
+      Range.new(begin_val.to_i64, end_val.to_i64, exclusive)
+    end
+
+    def to_set : Set(Value)
+      Set(Value).new(to_a)
     end
 
     # =========================================================================
@@ -286,6 +352,36 @@ module Rubellite
     # Invokes a method with a block, delegating to call_with_block
     def call(method_name : String | Symbol, *args, &block : Array(Value) -> Value) : Value
       call_with_block(method_name, *args, &block)
+    end
+
+    # Invokes a method with positional arguments and keyword arguments using Ruby 3+ kwargs protocol
+    def call_with_kwargs(method_name : String | Symbol, *args, **kwargs) : Value
+      mid = LibRuby.rb_intern(method_name.to_s.to_unsafe)
+      kw_hash = Hash(Symbol, Value).new
+      kwargs.each do |k, v|
+        kw_hash[k] = v.is_a?(Value) ? v : v.to_ruby
+      end
+
+      raw_args = Array(LibRuby::Value).new(args.size + 1)
+      args.each do |a|
+        raw_args << (a.is_a?(Value) ? a.raw : a.to_ruby.raw)
+      end
+      raw_args << kw_hash.to_ruby.raw
+
+      call_data = FuncallData.new(@raw, mid, raw_args.size, raw_args.to_unsafe)
+      fn = ->(arg : Void*) : LibRuby::Value {
+        cd = arg.as(FuncallData*)
+        LibRuby.rb_funcallv_kw(cd.value.recv, cd.value.mid, cd.value.argc, cd.value.argv, LibRuby::RB_PASS_KEYWORDS)
+      }
+
+      state = 0
+      res = Engine.synchronize do
+        LibRuby.rb_protect(fn, pointerof(call_data).as(Void*), pointerof(state))
+      end
+      if state != 0
+        raise Error.from_ruby_errinfo
+      end
+      Value.new(res)
     end
 
     # =========================================================================

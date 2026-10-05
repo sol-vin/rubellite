@@ -23,9 +23,31 @@ settings:
       title: "\U0001F6E0️ Chores & Tooling"
       bullet: •
 releases:
-- version: 0.1.13
+- version: 0.1.14
   date: "2026-10-04"
   status: active
+  entries:
+  - type: feat
+    description: Add comprehensive Rubellite test platform expansion (21 suites, 103
+      specs) covering GC invariants, GVL concurrency, and extended types
+  - type: feat
+    description: Implement CRuby 3.0+ keyword arguments dispatch (`rb_funcallv_kw`)
+      and native Ruby exception class raising (`ArgumentError`, `TypeError`, `ZeroDivisionError`)
+  - type: feat
+    description: 'Support extended Ruby types: nanosecond Time, inclusive/exclusive
+      Range, Regexp captures, Set, Rational, Complex, NaN, and Infinity'
+  - type: fix
+    description: Fix signed Fixnum right-shift unboxing using to_i64! preventing arithmetic
+      overflow on negative integers
+  - type: fix
+    description: Harden without_gvl and with_gvl with exception propagation and NoReturn
+      block support
+  - type: maintenance
+    description: Expand CI matrix to test multiple Ruby versions (Ruby 3.2 and 3.3
+      across Linux, macOS, and Windows)
+- version: 0.1.13
+  date: "2026-10-04"
+  status: released
   entries: []
 - version: 0.1.12
   date: "2026-10-04"

@@ -1,4 +1,18 @@
 # CARBON CHANGELOG
+## [0.1.14] - 2026-10-04
+### ✨ Features & Improvements
+- ✦ Add comprehensive Rubellite test platform expansion (21 suites, 103 specs) covering GC invariants, GVL concurrency, and extended types
+- ✦ Implement CRuby 3.0+ keyword arguments dispatch (`rb_funcallv_kw`) and native Ruby exception class raising (`ArgumentError`, `TypeError`, `ZeroDivisionError`)
+- ✦ Support extended Ruby types: nanosecond Time, inclusive/exclusive Range, Regexp captures, Set, Rational, Complex, NaN, and Infinity
+
+### 🐛 Bug Fixes
+- ✓ Fix signed Fixnum right-shift unboxing using to_i64! preventing arithmetic overflow on negative integers
+- ✓ Harden without_gvl and with_gvl with exception propagation and NoReturn block support
+
+### 🛠️ Chores & Tooling
+- • Expand CI matrix to test multiple Ruby versions (Ruby 3.2 and 3.3 across Linux, macOS, and Windows)
+
+---
 ## [0.1.13] - 2026-10-04
 ---
 ## [0.1.12] - 2026-10-04

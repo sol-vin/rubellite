@@ -65,7 +65,11 @@ lib LibRuby
   fun rb_hash_size(hash : Value) : Value
 
   # Method Dispatch & Callbacks
+  RB_NO_KEYWORDS = 0
+  RB_PASS_KEYWORDS = 1
+
   fun rb_funcallv(obj : Value, mid : Id, argc : Int32, argv : Value*) : Value
+  fun rb_funcallv_kw(obj : Value, mid : Id, argc : Int32, argv : Value*, kw_splat : Int32) : Value
   fun rb_funcallv_public(obj : Value, mid : Id, argc : Int32, argv : Value*) : Value
   fun rb_block_call(obj : Value, mid : Id, argc : Int32, argv : Value*, blk : (Value, Value, Int32, Value* -> Value), data2 : Value) : Value
   fun rb_yield(val : Value) : Value
