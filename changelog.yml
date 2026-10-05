@@ -23,9 +23,16 @@ settings:
       title: "\U0001F6E0️ Chores & Tooling"
       bullet: •
 releases:
-- version: 0.1.16
+- version: 0.1.17
   date: "2026-10-04"
   status: active
+  entries:
+  - type: maintenance
+    description: Standardize CI tier to officially supported Ruby 3.3 target ABI across
+      Linux, macOS, and Windows
+- version: 0.1.16
+  date: "2026-10-04"
+  status: released
   entries:
   - type: fix
     description: Pre-query Ruby standard library paths before C-API initialization

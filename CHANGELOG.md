@@ -1,4 +1,9 @@
 # CARBON CHANGELOG
+## [0.1.17] - 2026-10-04
+### 🛠️ Chores & Tooling
+- • Standardize CI tier to officially supported Ruby 3.3 target ABI across Linux, macOS, and Windows
+
+---
 ## [0.1.16] - 2026-10-04
 ### 🐛 Bug Fixes
 - ✓ Pre-query Ruby standard library paths before C-API initialization to ensure reliable $LOAD_PATH bootstrapping
