@@ -14,3 +14,5 @@
 shard.lock
 !ext/ruby_clean.lib
 !ext/ruby_clean.def
+.crystal_cache/
+.rubellite_cache/

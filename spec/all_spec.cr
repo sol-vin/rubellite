@@ -19,4 +19,5 @@ require "./types_extended_spec"
 require "./gc_and_lifecycle_spec"
 require "./concurrency_gvl_spec"
 require "./kwargs_and_block_yield_spec"
+require "./spinel_expansion_spec"
 

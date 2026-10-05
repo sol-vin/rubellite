@@ -1,4 +1,14 @@
 # CARBON CHANGELOG
+## [0.1.19] - 2026-10-04
+### ✨ Features & Improvements
+- ✦ **[SPINEL]** expand Spinel AOT with DSLs, caching, zero-copy buffers, and CRuby export ([`fcce7b6`](https://github.com/sol-vin/rubellite/commit/fcce7b6))
+
+---
+## [0.1.18] - 2026-10-04
+### ✨ Features & Improvements
+- ✦ **[SPINEL]** expand Spinel AOT with DSLs, caching, zero-copy buffers, and CRuby export ([`fcce7b6`](https://github.com/sol-vin/rubellite/commit/fcce7b6))
+
+---
 ## [0.1.17] - 2026-10-04
 ### 🛠️ Chores & Tooling
 - • Standardize CI tier to officially supported Ruby 3.3 target ABI across Linux, macOS, and Windows

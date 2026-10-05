@@ -76,9 +76,14 @@ module Rubellite
           r2_ver = `r2 -v 2>&1`.lines.first? || "not detected"
           puts "  \e[32m✓\e[0m radare2 Engine     : #{r2_ver.strip}"
 
-          # 5. Spinel
-          spinel_status = Spinel.available? ? "\e[32m✓\e[0m available" : "\e[33m-\e[0m not detected (AOT fallback mode enabled)"
+          # 5. Spinel & Native Compiler
+          c_comp = Spinel.find_compiler
+          puts "  \e[32m✓\e[0m Native C Compiler  : #{c_comp}"
+          spinel_status = Spinel.available? ? "\e[32m✓\e[0m available" : "\e[33m-\e[0m not detected (integrated C99 fallback enabled)"
           puts "  \e[36m•\e[0m Spinel AOT Compiler: #{spinel_status}"
+          cache_path = Spinel.cache_dir
+          cached_count = Dir.exists?(cache_path) ? Dir.children(cache_path).size : 0
+          puts "  \e[32m✓\e[0m Spinel AOT Cache   : #{cache_path} (#{cached_count} items)"
 
           # 6. Live Smoke Test
           print "\n  \e[1mRunning VM smoke test...\e[0m "
@@ -216,6 +221,40 @@ module Rubellite
           puts "│ CRuby 4.0 (Method Dispatch)   │ #{rb_ms.to_s.rjust(11)} ms │       1.0x (ref) │"
           puts "└───────────────────────────────┴────────────────┴──────────────┘"
           puts "\nAll calculations verified identical: #{crystal_res} iterations."
+          0
+        end
+      end
+
+      # -----------------------------------------------------------------------
+      # Spinel Command
+      # -----------------------------------------------------------------------
+      app.command("spinel", "Manage Spinel AOT compiler cache and compilation") do |cmd|
+        cmd.argument(:action, "Action: info, clean, or compile", required: false)
+        cmd.argument(:file, "Source file (for compile action)", required: false)
+
+        cmd.run do |ctx|
+          action = ctx.named_args[:action]? || ctx.args.first? || "info"
+          case action
+          when "clean", "clear"
+            Spinel.clear_cache!
+            puts "\e[32m✓ Spinel cache cleared successfully.\e[0m"
+          when "compile"
+            file = ctx.named_args[:file]? || ctx.args[1]?
+            if file && File.exists?(file)
+              source = File.read(file)
+              name = File.basename(file, File.extname(file))
+              kernel = Spinel.compile_c(source, name: name)
+              puts "\e[32m✓ Successfully compiled '#{file}' -> '#{kernel.lib_path}'\e[0m"
+            else
+              puts "\e[31mError: Please specify an existing source file to compile.\e[0m"
+              next 1
+            end
+          else
+            puts "Spinel AOT Native Engine:"
+            puts "  • Compiler: #{Spinel.find_compiler}"
+            puts "  • Binary  : #{Spinel.available? ? "Detected" : "Integrated C99 fallback"}"
+            puts "  • Cache   : #{Spinel.cache_dir}"
+          end
           0
         end
       end

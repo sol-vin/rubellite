@@ -44,6 +44,14 @@ module Rubellite
       (@raw & LibRuby::FLONUM_MASK) == LibRuby::FLONUM_FLAG
     end
 
+    def float? : Bool
+      flonum? || class_name == "Float"
+    end
+
+    def integer? : Bool
+      fixnum? || class_name == "Integer"
+    end
+
     def numeric? : Bool
       fixnum? || flonum? || class_name == "Float" || class_name == "Integer"
     end
