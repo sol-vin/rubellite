@@ -79,10 +79,10 @@ module Rubellite
         File.write("ruby-version.yml", manifest.strip + "\n")
         puts "  Updated \e[36mruby-version.yml\e[0m for Ruby #{ruby_version}"
 
-        # 6. Commit single commit
+        # 6. Commit single commit (bypassing pre-commit hook so internal shard version is not bumped)
         exec_cmd("git", ["add", "ruby-version.yml"])
         commit_msg = "chore(ruby): track Ruby #{ruby_version} compatibility"
-        exec_cmd("git", ["commit", "-m", commit_msg])
+        exec_cmd("git", ["commit", "--no-verify", "--allow-empty", "-m", commit_msg])
         puts "  Committed: '\e[1m#{commit_msg}\e[0m'"
 
         # 7. Create annotated tag

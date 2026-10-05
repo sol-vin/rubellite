@@ -5,7 +5,7 @@
 <!-- carbon:badges -->
 [![CI](https://github.com/sol-vin/rubellite/actions/workflows/ci.yml/badge.svg)](https://github.com/sol-vin/rubellite/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://sol-vin.github.io/rubellite/)
-[![Version](https://img.shields.io/badge/version-0.1.8-blue.svg)](https://github.com/sol-vin/rubellite/releases)
+[![Version](https://img.shields.io/badge/version-0.1.9-blue.svg)](https://github.com/sol-vin/rubellite/releases)
 [![Crystal](https://img.shields.io/badge/crystal-%3E%3D%201.20.0-black.svg)](https://crystal-lang.org)
 [![ruby](https://img.shields.io/badge/ruby-%3E%3D%203.0-CC342D.svg?logo=ruby)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
