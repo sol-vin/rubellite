@@ -80,3 +80,40 @@ macro spinel_module(name, &block)
     {{block.body}}
   end
 end
+
+# Macro for defining C generator functions that stream in real-time to a Crystal Channel(T)
+macro spinel_generator(decl, yields, code)
+  {% method_name = decl.name %}
+  {% args = decl.args %}
+  {% item_type = yields %}
+
+  @@__spinel_gen_{{method_name.id}} : Rubellite::Spinel::Kernel? = nil
+
+  def self.{{method_name.id}}({% for arg, i in args %}{% if i > 0 %}, {% end %}{{arg}}{% end %}, capacity : Int32 = 64) : Channel({{item_type}})
+    kernel = @@__spinel_gen_{{method_name.id}} ||= begin
+      c_source = String.build do |io|
+        io << "EXPORT void {{method_name.id}}("
+        {% for arg, i in args %}
+          io << case {{arg.type.stringify}}
+                when "Int64" then "int64_t"
+                when "Int32" then "int32_t"
+                when "UInt64" then "uint64_t"
+                when "UInt32" then "uint32_t"
+                when "Float64" then "double"
+                when "Float32" then "float"
+                when "Bool" then "bool"
+                else "void*"
+                end
+          io << " " << {{arg.var.stringify}} << ", "
+        {% end %}
+        io << "SpinelChannelContext* _spinel_ctx) {\n"
+        io << {{code}} << "\n"
+        io << "}\n"
+      end
+
+      Rubellite::Spinel.compile_c(c_source, name: {{method_name.stringify}})
+    end
+
+    kernel.stream({{item_type}}, {{method_name.stringify}}, {% for arg in args %}{{arg.var}}, {% end %}capacity: capacity)
+  end
+end

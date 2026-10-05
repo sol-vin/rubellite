@@ -1,4 +1,14 @@
 # CARBON CHANGELOG
+## [0.1.21] - 2026-10-04
+### ✨ Features & Improvements
+- ✦ **[SPINEL]** add Channel streaming, async Futures, and multi-fiber concurrency bindings ([`e8642f3`](https://github.com/sol-vin/rubellite/commit/e8642f3))
+
+---
+## [0.1.20] - 2026-10-04
+### ✨ Features & Improvements
+- ✦ **[SPINEL]** add Channel streaming, async Futures, and multi-fiber concurrency bindings ([`e8642f3`](https://github.com/sol-vin/rubellite/commit/e8642f3))
+
+---
 ## [0.1.19] - 2026-10-04
 ### ✨ Features & Improvements
 - ✦ **[SPINEL]** expand Spinel AOT with DSLs, caching, zero-copy buffers, and CRuby export ([`fcce7b6`](https://github.com/sol-vin/rubellite/commit/fcce7b6))

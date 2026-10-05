@@ -23,9 +23,31 @@ settings:
       title: "\U0001F6E0️ Chores & Tooling"
       bullet: •
 releases:
-- version: 0.1.19
+- version: 0.1.21
   date: "2026-10-04"
   status: active
+  entries:
+  - type: feat
+    description: add Channel streaming, async Futures, and multi-fiber concurrency
+      bindings
+    bullet: ✦
+    badge: '[SPINEL]'
+    hash: e8642f3
+    author: Ian Rash
+- version: 0.1.20
+  date: "2026-10-04"
+  status: released
+  entries:
+  - type: feat
+    description: add Channel streaming, async Futures, and multi-fiber concurrency
+      bindings
+    bullet: ✦
+    badge: '[SPINEL]'
+    hash: e8642f3
+    author: Ian Rash
+- version: 0.1.19
+  date: "2026-10-04"
+  status: released
   entries:
   - type: feat
     description: expand Spinel AOT with DSLs, caching, zero-copy buffers, and CRuby

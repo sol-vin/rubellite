@@ -46,6 +46,22 @@ module Rubellite
           io << "#else\n"
           io << "#define EXPORT __attribute__((visibility(\"default\")))\n"
           io << "#endif\n\n"
+          io << "/* Spinel Channel Streaming ABI Context */\n"
+          io << "typedef struct SpinelChannelContext {\n"
+          io << "    void* ctx;\n"
+          io << "    void (*send_i64)(void* ctx, int64_t val);\n"
+          io << "    void (*send_f64)(void* ctx, double val);\n"
+          io << "    void (*send_bool)(void* ctx, bool val);\n"
+          io << "    void (*close)(void* ctx);\n"
+          io << "    int64_t (*recv_i64)(void* ctx, bool* has_more);\n"
+          io << "    double (*recv_f64)(void* ctx, bool* has_more);\n"
+          io << "} SpinelChannelContext;\n\n"
+          io << "#define spinel_send(val) _spinel_ctx->send_i64(_spinel_ctx->ctx, (int64_t)(val))\n"
+          io << "#define spinel_send_f64(val) _spinel_ctx->send_f64(_spinel_ctx->ctx, (double)(val))\n"
+          io << "#define spinel_send_bool(val) _spinel_ctx->send_bool(_spinel_ctx->ctx, (bool)(val))\n"
+          io << "#define spinel_close() _spinel_ctx->close(_spinel_ctx->ctx)\n"
+          io << "#define spinel_recv(has_more_ptr) _spinel_ctx->recv_i64(_spinel_ctx->ctx, (has_more_ptr))\n"
+          io << "#define spinel_recv_f64(has_more_ptr) _spinel_ctx->recv_f64(_spinel_ctx->ctx, (has_more_ptr))\n\n"
 
           # If the user source does not already contain EXPORT, ensure exported functions have it
           has_export = source.includes?("EXPORT")

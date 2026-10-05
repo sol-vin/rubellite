@@ -3,6 +3,8 @@ require "./convert"
 require "./engine"
 require "./macros"
 require "./spinel/transpiler"
+require "./spinel/channel"
+require "./spinel/async"
 require "./spinel/dsl"
 require "digest/sha256"
 
@@ -239,6 +241,95 @@ module Rubellite
         out_str || "Disassembly for '#{target}' unavailable (radare2 output empty)"
       rescue
         "Disassembly for '#{func_name || @name}' unavailable (radare2 not installed or symbol not found)"
+      end
+
+      # Asynchronously executes the C kernel function on a background fiber without blocking the caller
+      def async(return_type : T.class, func_name : String, *args) : Future(T) forall T
+        future = Future(T).new
+        spawn do
+          begin
+            res = Concurrency.without_gvl do
+              call_as(T, func_name, *args)
+            end
+            future.complete(res)
+          rescue ex
+            future.fail(ex)
+          end
+        end
+        future
+      end
+
+      # Streams real-time data from a C kernel into a Crystal Channel(T)
+      def stream(item_type : T.class, func_name : String, *args, capacity : Int32 = 64) : Channel(T) forall T
+        channel = Channel(T).new(capacity)
+        bridge = ChannelBridge(T).new(channel)
+        context = bridge.to_c_context
+
+        spawn do
+          begin
+            Concurrency.without_gvl do
+              fn_ptr = DynLink.sym(@handle, func_name)
+              raise "Exported symbol '#{func_name}' not found in Spinel kernel '#{@name}'" if fn_ptr.null?
+              Proc(*typeof(args), Pointer(ChannelContext), Nil).new(fn_ptr, Pointer(Void).null).call(*args, pointerof(context))
+            end
+          rescue ex
+            # Handle potential background fiber errors
+          ensure
+            bridge.close
+          end
+        end
+
+        channel
+      end
+
+      # Connects an input channel to a C processing kernel that streams to an output channel
+      def pipe(
+        input_channel : Channel(U),
+        output_type : V.class,
+        func_name : String,
+        *args,
+        capacity : Int32 = 64
+      ) : Channel(V) forall U, V
+        out_channel = Channel(V).new(capacity)
+        in_bridge = ChannelBridge(U).new(input_channel)
+        out_bridge = ChannelBridge(V).new(out_channel)
+        in_ctx = in_bridge.to_c_context
+        out_ctx = out_bridge.to_c_context
+
+        spawn do
+          begin
+            Concurrency.without_gvl do
+              fn_ptr = DynLink.sym(@handle, func_name)
+              raise "Exported symbol '#{func_name}' not found in Spinel kernel '#{@name}'" if fn_ptr.null?
+              Proc(*typeof(args), Pointer(ChannelContext), Pointer(ChannelContext), Nil).new(fn_ptr, Pointer(Void).null).call(
+                *args,
+                pointerof(in_ctx),
+                pointerof(out_ctx)
+              )
+            end
+          ensure
+            out_bridge.close
+          end
+        end
+
+        out_channel
+      end
+
+      # Calls a C function passing a Crystal callback closure and its context
+      def call_with_callback(func_name : String, *args, &block : Int64, Int64 -> Nil) : Nil
+        fn_ptr = DynLink.sym(@handle, func_name)
+        raise "Exported symbol '#{func_name}' not found in Spinel kernel '#{@name}'" if fn_ptr.null?
+        boxed = Box(typeof(block)).box(block)
+        trampoline = ->(ctx : Void*, a : Int64, b : Int64) : Nil {
+          blk = Box(typeof(block)).unbox(ctx)
+          blk.call(a, b)
+          nil
+        }
+        Proc(*typeof(args), Void*, (Void*, Int64, Int64 -> Nil), Nil).new(fn_ptr, Pointer(Void).null).call(
+          *args,
+          boxed,
+          trampoline
+        )
       end
 
       def close
