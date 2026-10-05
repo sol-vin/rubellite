@@ -86,6 +86,7 @@ lib LibRuby
   fun rb_inspect(val : Value) : Value
   fun rb_frame_this_func : Id
   fun rb_obj_is_kind_of(obj : Value, klass : Value) : Value
+  fun rb_undef_alloc_func(klass : Value) : Void
 
   # Exceptions
   fun rb_errinfo : Value
@@ -110,4 +111,26 @@ lib LibRuby
     func : (Void* -> Void*),
     data1 : Void*
   ) : Void*
+
+  # TypedData
+  struct DataTypeFunctions
+    dmark : Void*
+    dfree : Void*
+    dsize : Void*
+    dcompact : Void*
+    reserved : Void*[1]
+  end
+
+  struct DataType
+    wrap_struct_name : UInt8*
+    function : DataTypeFunctions
+    parent : DataType*
+    data : Void*
+    flags : Value
+  end
+
+  fun rb_data_typed_object_wrap(klass : Value, datap : Void*, type : DataType*) : Value
+  fun rb_check_typeddata(val : Value, type : DataType*) : Void*
+  fun rb_typeddata_is_kind_of(val : Value, type : DataType*) : Int32
 end
+

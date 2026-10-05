@@ -23,9 +23,20 @@ settings:
       title: "\U0001F6E0️ Chores & Tooling"
       bullet: •
 releases:
-- version: 0.1.21
+- version: 0.1.22
   date: "2026-10-04"
   status: active
+  entries:
+  - type: feat
+    description: add TypedData zero-copy struct wrapping, VFS in-memory gems, Spinel::Vector
+      SIMD buffers, and Profiler telemetry
+    bullet: ✦
+    badge: '[NEXT-GEN]'
+    hash: 3bc547c
+    author: Ian Rash
+- version: 0.1.21
+  date: "2026-10-04"
+  status: released
   entries:
   - type: feat
     description: add Channel streaming, async Futures, and multi-fiber concurrency

@@ -6,6 +6,7 @@ require "./spinel/transpiler"
 require "./spinel/channel"
 require "./spinel/async"
 require "./spinel/dsl"
+require "./spinel/vector"
 require "digest/sha256"
 
 module Rubellite

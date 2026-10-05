@@ -1,4 +1,9 @@
 # CARBON CHANGELOG
+## [0.1.22] - 2026-10-04
+### ✨ Features & Improvements
+- ✦ **[NEXT-GEN]** add TypedData zero-copy struct wrapping, VFS in-memory gems, Spinel::Vector SIMD buffers, and Profiler telemetry ([`3bc547c`](https://github.com/sol-vin/rubellite/commit/3bc547c))
+
+---
 ## [0.1.21] - 2026-10-04
 ### ✨ Features & Improvements
 - ✦ **[SPINEL]** add Channel streaming, async Futures, and multi-fiber concurrency bindings ([`e8642f3`](https://github.com/sol-vin/rubellite/commit/e8642f3))

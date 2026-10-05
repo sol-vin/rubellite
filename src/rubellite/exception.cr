@@ -60,6 +60,10 @@ module Rubellite
     end
   end
 
+  # Raised when type casting or typed data unboxing encounters an incompatible type
+  class TypeException < Exception
+  end
+
   # Exception used to signal raising a specific native Ruby exception class from Crystal
   class RubyRaiseException < Exception
     getter ruby_class : String
